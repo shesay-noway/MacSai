@@ -13,28 +13,27 @@ struct SpaceLensView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Space Lens")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
                     Text("Visualize disk space usage")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
                 Spacer()
                 if !isScanning {
                     Button("Scan") { startScan() }
                         .buttonStyle(SuperEllipseButtonStyle(
-                            gradient: ModuleTheme.files.gradient,
-                            size: CGSize(width: 100, height: 36)
+                            gradient: ModuleTheme.files.buttonGradient,
+                            size: CGSize(width: 90, height: 34)
                         ))
                 }
             }
-            .padding(20)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
 
-            // Breadcrumb navigation
             if !breadcrumbs.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
@@ -53,17 +52,14 @@ struct SpaceLensView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 24)
                     .padding(.bottom, 8)
                 }
             }
 
-            // Treemap
             if isScanning {
                 Spacer()
-                ProgressView("Scanning disk...")
-                    .foregroundStyle(.white)
-                    .tint(.white)
+                ScanProgressRing(progress: 0.5, phase: "Scanning disk...", theme: .files)
                 Spacer()
             } else if !treemapRects.isEmpty {
                 GeometryReader { geo in
@@ -76,12 +72,13 @@ struct SpaceLensView: View {
                 }
             } else {
                 Spacer()
-                VStack(spacing: 16) {
+                VStack(spacing: 14) {
                     Image(systemName: "chart.pie")
-                        .font(.system(size: 50))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .font(.system(size: 44))
+                        .foregroundStyle(.white.opacity(0.4))
                     Text("Click Scan to visualize disk usage")
-                        .foregroundStyle(.white.opacity(0.6))
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.55))
                 }
                 Spacer()
             }
@@ -130,7 +127,7 @@ struct SpaceLensView: View {
 
             let treemapNodes = node.children
                 .sorted { $0.totalSize > $1.totalSize }
-                .prefix(50) // Top 50 for performance
+                .prefix(50)
                 .map { child in
                     TreemapNode(
                         name: child.name,

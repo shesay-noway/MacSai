@@ -6,6 +6,7 @@ struct TrashBinsView: View {
     @State private var results: [ScanResult] = []
     @State private var selectedItems: Set<URL> = []
     @State private var isScanning = false
+    @State private var scanComplete = false
     @State private var isDone = false
     @State private var freedSize: UInt64 = 0
 
@@ -16,9 +17,14 @@ struct TrashBinsView: View {
             title: "Trash Bins",
             subtitle: "Empty all trash locations including external drives",
             theme: .cleanup,
+            emptyMessage: "Trash is empty",
+            needsTCCPaths: true,
             results: results,
             selectedItems: $selectedItems,
             isScanning: isScanning,
+            scanProgress: scanProgress,
+            scanPhase: scanPhase,
+            scanComplete: scanComplete,
             isDone: isDone,
             freedSize: freedSize,
             onScan: scan,
@@ -27,14 +33,40 @@ struct TrashBinsView: View {
         )
     }
 
+    @State private var scanProgress: Double = 0
+    @State private var scanPhase = ""
+
     private func scan() {
         isScanning = true
+        scanComplete = false
+        scanProgress = 0
         Task {
-            results = await module.scan()
+            let scanStart = Date()
+
+            scanPhase = "Scanning user Trash..."
+            scanProgress = 0.3
+            try? await Task.sleep(for: .milliseconds(400))
+
+            scanPhase = "Checking external drives..."
+            scanProgress = 0.6
+
+            async let scanTask = module.scan()
+            results = await scanTask
+
+            scanPhase = "Calculating sizes..."
+            scanProgress = 0.9
+
+            let elapsed = Date().timeIntervalSince(scanStart)
+            if elapsed < 1.5 {
+                try? await Task.sleep(for: .milliseconds(Int((1.5 - elapsed) * 1000)))
+            }
+            scanProgress = 1.0
+
             for r in results where r.autoSelect {
                 selectedItems.formUnion(r.items.map(\.url))
             }
             isScanning = false
+            scanComplete = true
         }
     }
 
@@ -48,9 +80,6 @@ struct TrashBinsView: View {
     }
 
     private func reset() {
-        results = []
-        selectedItems = []
-        isDone = false
-        freedSize = 0
+        results = []; selectedItems = []; isDone = false; freedSize = 0; scanComplete = false
     }
 }

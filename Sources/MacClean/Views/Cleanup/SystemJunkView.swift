@@ -6,7 +6,7 @@ struct SystemJunkView: View {
     @State private var viewModel = SystemJunkViewModel()
 
     var body: some View {
-        VStack(spacing: 0) {
+        Group {
             switch viewModel.state {
             case .idle:
                 idleView
@@ -14,36 +14,36 @@ struct SystemJunkView: View {
                 scanningView(progress: progress)
             case .results:
                 resultsView
+            case .empty:
+                emptyView
             case .cleaning:
                 cleaningView
             case .done(let freed):
                 doneView(freed: freed)
             }
         }
-        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var idleView: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 28) {
             Spacer()
 
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 Text("System Junk")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundStyle(.white)
 
-                Text("Find and remove system caches, logs, language files, and other junk")
+                Text("Find and remove system caches, logs,\nlanguage files, and other junk")
                     .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(0.65))
                     .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
             }
 
             ScanButton(
                 title: "Scan",
                 subtitle: "System Junk",
-                theme: .cleanup,
-                isScanning: false
+                theme: .cleanup
             ) {
                 viewModel.startScan()
             }
@@ -53,25 +53,15 @@ struct SystemJunkView: View {
     }
 
     private func scanningView(progress: Double) -> some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 0) {
             Spacer()
 
-            ScanButton(
-                title: "Scan",
-                theme: .cleanup,
-                isScanning: true,
-                progress: progress
-            ) {}
-
-            VStack(spacing: 4) {
-                Text("Scanning for system junk...")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.white)
-
-                Text("\(viewModel.filesFound) files found")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.6))
-            }
+            ScanProgressRing(
+                progress: progress,
+                phase: viewModel.scanPhase,
+                detail: "\(viewModel.filesFound) files found",
+                theme: .cleanup
+            )
 
             Spacer()
         }
@@ -79,67 +69,80 @@ struct SystemJunkView: View {
 
     private var resultsView: some View {
         VStack(spacing: 0) {
-            // Header
             HStack {
                 SizeDisplay(size: viewModel.totalSelectedSize, label: "selected to clean")
                     .foregroundStyle(.white)
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: 6) {
                     Text("\(viewModel.selectedCount) of \(viewModel.totalFileCount) files")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.6))
 
                     Button("Clean") {
                         viewModel.startCleaning(engine: appState.cleaningEngine)
                     }
                     .buttonStyle(SuperEllipseButtonStyle(
-                        gradient: ModuleTheme.cleanup.gradient,
-                        size: CGSize(width: 120, height: 44)
+                        gradient: ModuleTheme.cleanup.buttonGradient,
+                        size: CGSize(width: 110, height: 40)
                     ))
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
 
-            // File list
             FileListView(
                 results: viewModel.results,
                 selectedItems: $viewModel.selectedItems
             )
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        }
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 52))
+                .foregroundStyle(.white.opacity(0.9))
+            Text("No junk found")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+            Text("Your Mac is clean!")
+                .font(.system(size: 13))
+                .foregroundStyle(.white.opacity(0.55))
+            Button("Done") { viewModel.reset() }
+                .buttonStyle(.bordered)
+                .tint(.white)
+                .controlSize(.large)
+            Spacer()
         }
     }
 
     private var cleaningView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             Spacer()
-            ProgressView("Cleaning...")
-                .foregroundStyle(.white)
-                .tint(.white)
+            ScanProgressRing(progress: 0.5, phase: "Cleaning...", theme: .cleanup)
             Spacer()
         }
     }
 
     private func doneView(freed: UInt64) -> some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Spacer()
-
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 50))
+                .font(.system(size: 52))
                 .foregroundStyle(.white)
-
             SizeDisplay(size: freed, label: "cleaned up")
                 .foregroundStyle(.white)
-
-            Button("Done") {
-                viewModel.reset()
-            }
-            .buttonStyle(.bordered)
-            .tint(.white)
-
+            Button("Done") { viewModel.reset() }
+                .buttonStyle(.bordered)
+                .tint(.white)
+                .controlSize(.large)
             Spacer()
         }
     }

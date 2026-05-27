@@ -6,6 +6,9 @@ struct LargeOldFilesView: View {
     @State private var results: [ScanResult] = []
     @State private var selectedItems: Set<URL> = []
     @State private var isScanning = false
+    @State private var scanProgress: Double = 0
+    @State private var scanPhase = ""
+    @State private var scanComplete = false
     @State private var isDone = false
     @State private var freedSize: UInt64 = 0
 
@@ -14,9 +17,13 @@ struct LargeOldFilesView: View {
             title: "Large & Old Files",
             subtitle: "Find files larger than 50 MB that haven't been accessed recently",
             theme: .files,
+            emptyMessage: "No large or old files found",
             results: results,
             selectedItems: $selectedItems,
             isScanning: isScanning,
+            scanProgress: scanProgress,
+            scanPhase: scanPhase,
+            scanComplete: scanComplete,
             isDone: isDone,
             freedSize: freedSize,
             onScan: scan,
@@ -27,10 +34,38 @@ struct LargeOldFilesView: View {
 
     private func scan() {
         isScanning = true
+        scanComplete = false
+        scanProgress = 0
         Task {
+            let scanStart = Date()
+
+            scanPhase = "Scanning home directory..."
+            scanProgress = 0.2
+            try? await Task.sleep(for: .milliseconds(500))
+
+            scanPhase = "Checking file sizes..."
+            scanProgress = 0.45
+
             let module = LargeOldFilesModule()
-            results = await module.scan()
+            async let scanTask = module.scan()
+
+            try? await Task.sleep(for: .milliseconds(400))
+            scanPhase = "Checking access dates..."
+            scanProgress = 0.7
+
+            results = await scanTask
+
+            scanPhase = "Grouping results..."
+            scanProgress = 0.9
+
+            let elapsed = Date().timeIntervalSince(scanStart)
+            if elapsed < 2.0 {
+                try? await Task.sleep(for: .milliseconds(Int((2.0 - elapsed) * 1000)))
+            }
+            scanProgress = 1.0
+
             isScanning = false
+            scanComplete = true
         }
     }
 
@@ -44,6 +79,6 @@ struct LargeOldFilesView: View {
     }
 
     private func reset() {
-        results = []; selectedItems = []; isDone = false; freedSize = 0
+        results = []; selectedItems = []; isDone = false; freedSize = 0; scanComplete = false
     }
 }

@@ -12,6 +12,7 @@ struct ContentView: View {
             ZStack {
                 if let item = appState.selectedSidebarItem {
                     GradientBackgroundView(theme: item.theme)
+                        .ignoresSafeArea()
                     moduleView(for: item)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -19,14 +20,9 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .toolbarBackground(.hidden, for: .windowToolbar)
         }
-        .navigationTitle("")
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text("Mac Clean")
-                    .font(.headline)
-            }
-        }
+        .navigationTitle("Mac Clean")
     }
 
     @ViewBuilder

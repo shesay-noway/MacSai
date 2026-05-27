@@ -5,14 +5,55 @@ struct ModuleContainerView: View {
     let title: String
     let subtitle: String
     let theme: ModuleTheme
+    let emptyMessage: String
+    let needsTCCPaths: Bool
     let results: [ScanResult]
     @Binding var selectedItems: Set<URL>
     let isScanning: Bool
+    let scanProgress: Double
+    let scanPhase: String
+    let scanComplete: Bool
     let isDone: Bool
     let freedSize: UInt64
     let onScan: () -> Void
     let onClean: () -> Void
     let onReset: () -> Void
+
+    init(
+        title: String,
+        subtitle: String,
+        theme: ModuleTheme,
+        emptyMessage: String = "No items found",
+        needsTCCPaths: Bool = false,
+        results: [ScanResult],
+        selectedItems: Binding<Set<URL>>,
+        isScanning: Bool,
+        scanProgress: Double = 0.5,
+        scanPhase: String = "Scanning...",
+        scanComplete: Bool = false,
+        isDone: Bool,
+        freedSize: UInt64,
+        onScan: @escaping () -> Void,
+        onClean: @escaping () -> Void,
+        onReset: @escaping () -> Void
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.theme = theme
+        self.emptyMessage = emptyMessage
+        self.needsTCCPaths = needsTCCPaths
+        self.results = results
+        self._selectedItems = selectedItems
+        self.isScanning = isScanning
+        self.scanProgress = scanProgress
+        self.scanPhase = scanPhase
+        self.scanComplete = scanComplete
+        self.isDone = isDone
+        self.freedSize = freedSize
+        self.onScan = onScan
+        self.onClean = onClean
+        self.onReset = onReset
+    }
 
     private var totalSelected: UInt64 {
         results.flatMap(\.items)
@@ -21,30 +62,34 @@ struct ModuleContainerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        Group {
             if isDone {
                 doneView
             } else if !results.isEmpty {
                 resultsView
             } else if isScanning {
                 scanningView
+            } else if scanComplete {
+                emptyResultsView
             } else {
                 idleView
             }
         }
-        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: - Idle
+
     private var idleView: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 28) {
             Spacer()
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 Text(title)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundStyle(.white)
                 Text(subtitle)
                     .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(0.65))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 380)
             }
@@ -53,16 +98,69 @@ struct ModuleContainerView: View {
         }
     }
 
+    // MARK: - Scanning
+
     private var scanningView: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 0) {
             Spacer()
-            ScanButton(title: "Scan", theme: theme, isScanning: true, progress: 0.5, action: {})
-            Text("Scanning...")
-                .font(.system(size: 15))
-                .foregroundStyle(.white.opacity(0.7))
+            ScanProgressRing(progress: scanProgress, phase: scanPhase, theme: theme)
             Spacer()
         }
     }
+
+    // MARK: - Empty Results
+
+    private var emptyResultsView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            if needsTCCPaths && !PermissionManager.shared.canReadTCCProtectedPaths() {
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.white.opacity(0.9))
+                Text("Couldn't access protected files")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                Text("This module scans areas that require Full Disk Access.\nGrant access in System Settings, then restart the app and scan again.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 400)
+
+                HStack(spacing: 14) {
+                    Button("Open Settings") {
+                        PermissionManager.shared.openFullDiskAccessSettings()
+                    }
+                    .buttonStyle(SuperEllipseButtonStyle(
+                        gradient: theme.buttonGradient,
+                        size: CGSize(width: 140, height: 40)
+                    ))
+
+                    Button("Scan Again") { onScan() }
+                        .buttonStyle(.bordered)
+                        .tint(.white)
+                }
+            } else {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 52))
+                    .foregroundStyle(.white.opacity(0.9))
+                Text(emptyMessage)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                Text("Scan complete — nothing to clean up")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.55))
+                Button("Done") { onReset() }
+                    .buttonStyle(.bordered)
+                    .tint(.white)
+                    .controlSize(.large)
+            }
+
+            Spacer()
+        }
+    }
+
+    // MARK: - Results
 
     private var resultsView: some View {
         VStack(spacing: 0) {
@@ -72,30 +170,35 @@ struct ModuleContainerView: View {
                 Spacer()
                 Button("Clean") { onClean() }
                     .buttonStyle(SuperEllipseButtonStyle(
-                        gradient: theme.gradient,
-                        size: CGSize(width: 120, height: 44)
+                        gradient: theme.buttonGradient,
+                        size: CGSize(width: 110, height: 40)
                     ))
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
 
             FileListView(results: results, selectedItems: $selectedItems)
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
         }
     }
 
+    // MARK: - Done
+
     private var doneView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Spacer()
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 50))
+                .font(.system(size: 52))
                 .foregroundStyle(.white)
             SizeDisplay(size: freedSize, label: "cleaned up")
                 .foregroundStyle(.white)
             Button("Done") { onReset() }
                 .buttonStyle(.bordered)
                 .tint(.white)
+                .controlSize(.large)
             Spacer()
         }
     }

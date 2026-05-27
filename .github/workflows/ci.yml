@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+
+      - name: Build
+        run: swift build
+
+      - name: Run Tests
+        run: swift run MacCleanTestRunner
+
+  security-audit:
+    name: Security Audit
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Scanning for potential secrets..."
+          if grep -rn "password\|secret\|api_key\|token" Sources/ --include="*.swift" | grep -v "//\|Password\|password:\|\.password\|kSecAttr\|SecItem\|Keychain\|saved passwords"; then
+            echo "::warning::Potential secrets found in source code"
+            exit 1
+          fi
+          echo "No secrets found."
+
+      - name: Check SafetyGuard integrity
+        run: |
+          echo "Verifying SafetyGuard protections..."
+          # Verify protected paths exist
+          grep -c "protectedPaths\|isProtected\|blocklist" Sources/MacClean/Core/Cleaner/SafetyGuard.swift
+          # Verify no direct FileManager.removeItem without SafetyGuard
+          UNSAFE=$(grep -rn "removeItem\|trashItem" Sources/MacClean/ --include="*.swift" | grep -v "SafetyGuard\|CleaningEngine\|SecureEraser\|dryRun\|// " | grep -v "Test" || true)
+          if [ -n "$UNSAFE" ]; then
+            echo "::warning::File deletion found outside SafetyGuard/CleaningEngine:"
+            echo "$UNSAFE"
+          fi
+          echo "SafetyGuard checks passed."
+
+      - name: Check for force unwrapping
+        run: |
+          FORCE_UNWRAPS=$(grep -rn '![^=]' Sources/ --include="*.swift" | grep -v "//\|guard\|if let\|NSApplication\|kFSEvent\|IBAction\|#if\|image:\|URL(string:" | grep '!$\| ! \|!)' | head -20 || true)
+          if [ -n "$FORCE_UNWRAPS" ]; then
+            echo "::warning::Potential force unwraps found (review manually):"
+            echo "$FORCE_UNWRAPS"
+          fi
+          echo "Force unwrap check done."

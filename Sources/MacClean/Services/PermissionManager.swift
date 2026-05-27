@@ -2,28 +2,34 @@ import Foundation
 import MacCleanKit
 import AppKit
 
-public final class PermissionManager: Sendable {
+public final class PermissionManager: @unchecked Sendable {
     public static let shared = PermissionManager()
 
     private init() {}
 
-    public var hasFullDiskAccess: Bool {
-        let testPaths = [
-            MCConstants.mailData.path(percentEncoded: false),
-            MCConstants.home.appending(path: "Library/Messages").path(percentEncoded: false),
-            MCConstants.home.appending(path: "Library/Safari").path(percentEncoded: false),
+    public func canReadTCCProtectedPaths() -> Bool {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser
+
+        let tccDirs = [
+            home.appendingPathComponent("Library/Safari"),
+            home.appendingPathComponent("Library/Mail"),
+            home.appendingPathComponent("Library/Messages"),
         ]
 
-        return testPaths.contains { FileManager.default.isReadableFile(atPath: $0) }
+        for dir in tccDirs {
+            var isDir: ObjCBool = false
+            if fm.fileExists(atPath: dir.path, isDirectory: &isDir), isDir.boolValue {
+                if let _ = try? fm.contentsOfDirectory(atPath: dir.path) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     public func openFullDiskAccessSettings() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
-        NSWorkspace.shared.open(url)
-    }
-
-    public func openAccessibilitySettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
     }
 }

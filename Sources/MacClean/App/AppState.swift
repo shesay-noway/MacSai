@@ -7,11 +7,8 @@ public final class AppState {
     var scanCoordinator = ScanCoordinator()
     let cleaningEngine = CleaningEngine()
 
-    var hasFullDiskAccess: Bool = false
-
     init() {
         registerModules()
-        checkPermissions()
     }
 
     private func registerModules() {
@@ -32,10 +29,4 @@ public final class AppState {
         ])
     }
 
-    private func checkPermissions() {
-        let testPath = MCConstants.home
-            .appending(path: "Library/Mail")
-            .path(percentEncoded: false)
-        hasFullDiskAccess = FileManager.default.isReadableFile(atPath: testPath)
-    }
 }

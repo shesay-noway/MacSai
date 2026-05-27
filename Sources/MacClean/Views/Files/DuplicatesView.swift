@@ -6,6 +6,9 @@ struct DuplicatesView: View {
     @State private var results: [ScanResult] = []
     @State private var selectedItems: Set<URL> = []
     @State private var isScanning = false
+    @State private var scanProgress: Double = 0
+    @State private var scanPhase = ""
+    @State private var scanComplete = false
     @State private var isDone = false
     @State private var freedSize: UInt64 = 0
 
@@ -14,9 +17,13 @@ struct DuplicatesView: View {
             title: "Duplicates",
             subtitle: "Find duplicate files using progressive hash detection",
             theme: .files,
+            emptyMessage: "No duplicates found",
             results: results,
             selectedItems: $selectedItems,
             isScanning: isScanning,
+            scanProgress: scanProgress,
+            scanPhase: scanPhase,
+            scanComplete: scanComplete,
             isDone: isDone,
             freedSize: freedSize,
             onScan: scan,
@@ -27,10 +34,42 @@ struct DuplicatesView: View {
 
     private func scan() {
         isScanning = true
+        scanComplete = false
+        scanProgress = 0
         Task {
+            let scanStart = Date()
+
+            scanPhase = "Grouping files by size..."
+            scanProgress = 0.15
+            try? await Task.sleep(for: .milliseconds(500))
+
+            scanPhase = "Computing partial hashes..."
+            scanProgress = 0.35
+
             let module = DuplicatesModule()
-            results = await module.scan()
+            async let scanTask = module.scan()
+
+            try? await Task.sleep(for: .milliseconds(500))
+            scanPhase = "Computing full hashes..."
+            scanProgress = 0.6
+
+            try? await Task.sleep(for: .milliseconds(400))
+            scanPhase = "Verifying duplicates..."
+            scanProgress = 0.8
+
+            results = await scanTask
+
+            scanPhase = "Finalizing..."
+            scanProgress = 0.95
+
+            let elapsed = Date().timeIntervalSince(scanStart)
+            if elapsed < 2.5 {
+                try? await Task.sleep(for: .milliseconds(Int((2.5 - elapsed) * 1000)))
+            }
+            scanProgress = 1.0
+
             isScanning = false
+            scanComplete = true
         }
     }
 
@@ -44,6 +83,6 @@ struct DuplicatesView: View {
     }
 
     private func reset() {
-        results = []; selectedItems = []; isDone = false; freedSize = 0
+        results = []; selectedItems = []; isDone = false; freedSize = 0; scanComplete = false
     }
 }

@@ -7,6 +7,7 @@ final class SystemJunkViewModel {
         case idle
         case scanning(progress: Double)
         case results
+        case empty
         case cleaning
         case done(freed: UInt64)
     }
@@ -15,6 +16,7 @@ final class SystemJunkViewModel {
     var results: [ScanResult] = []
     var selectedItems: Set<URL> = []
     var filesFound: Int = 0
+    var scanPhase: String = "Scanning..."
 
     private let module = SystemJunkModule()
 
@@ -38,11 +40,36 @@ final class SystemJunkViewModel {
         filesFound = 0
         results = []
         selectedItems = []
+        scanPhase = "Scanning caches..."
 
         Task {
-            state = .scanning(progress: 0.3)
+            let scanStart = Date()
 
-            let scanResults = await module.scan()
+            state = .scanning(progress: 0.1)
+            scanPhase = "Scanning user caches..."
+            try? await Task.sleep(for: .milliseconds(300))
+
+            scanPhase = "Scanning system logs..."
+            state = .scanning(progress: 0.25)
+
+            async let scanTask = module.scan()
+
+            try? await Task.sleep(for: .milliseconds(400))
+            scanPhase = "Checking language files..."
+            state = .scanning(progress: 0.4)
+
+            try? await Task.sleep(for: .milliseconds(300))
+            scanPhase = "Inspecting preferences..."
+            state = .scanning(progress: 0.55)
+
+            try? await Task.sleep(for: .milliseconds(300))
+            scanPhase = "Checking login items..."
+            state = .scanning(progress: 0.7)
+
+            let scanResults = await scanTask
+
+            scanPhase = "Analyzing results..."
+            state = .scanning(progress: 0.9)
 
             results = scanResults
             filesFound = scanResults.reduce(0) { $0 + $1.fileCount }
@@ -53,9 +80,14 @@ final class SystemJunkViewModel {
                 }
             }
 
+            let elapsed = Date().timeIntervalSince(scanStart)
+            if elapsed < 2.0 {
+                try? await Task.sleep(for: .milliseconds(Int((2.0 - elapsed) * 1000)))
+            }
+
             state = .scanning(progress: 1.0)
             try? await Task.sleep(for: .milliseconds(300))
-            state = .results
+            state = scanResults.isEmpty ? .empty : .results
         }
     }
 

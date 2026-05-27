@@ -16,25 +16,50 @@ public enum ModuleTheme {
         )
     }
 
+    public var buttonGradient: LinearGradient {
+        LinearGradient(
+            colors: buttonColors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     public var colors: [Color] {
         switch self {
         case .smartScan:
-            [Color(red: 0.35, green: 0.30, blue: 0.85), Color(red: 0.55, green: 0.35, blue: 0.95)]
+            [Color(red: 0.22, green: 0.12, blue: 0.55), Color(red: 0.42, green: 0.25, blue: 0.82), Color(red: 0.55, green: 0.38, blue: 0.92)]
         case .cleanup:
-            [Color(red: 0.18, green: 0.70, blue: 0.45), Color(red: 0.25, green: 0.82, blue: 0.55)]
+            [Color(red: 0.06, green: 0.38, blue: 0.25), Color(red: 0.12, green: 0.55, blue: 0.35), Color(red: 0.22, green: 0.70, blue: 0.45)]
         case .protection:
-            [Color(red: 0.90, green: 0.30, blue: 0.25), Color(red: 0.95, green: 0.45, blue: 0.30)]
+            [Color(red: 0.60, green: 0.10, blue: 0.10), Color(red: 0.78, green: 0.22, blue: 0.18), Color(red: 0.90, green: 0.35, blue: 0.25)]
         case .performance:
-            [Color(red: 0.95, green: 0.70, blue: 0.20), Color(red: 0.98, green: 0.80, blue: 0.30)]
+            [Color(red: 0.72, green: 0.48, blue: 0.08), Color(red: 0.85, green: 0.60, blue: 0.12), Color(red: 0.92, green: 0.72, blue: 0.22)]
         case .applications:
-            [Color(red: 0.65, green: 0.30, blue: 0.85), Color(red: 0.80, green: 0.40, blue: 0.90)]
+            [Color(red: 0.38, green: 0.12, blue: 0.62), Color(red: 0.55, green: 0.25, blue: 0.78), Color(red: 0.68, green: 0.35, blue: 0.88)]
         case .files:
-            [Color(red: 0.15, green: 0.65, blue: 0.80), Color(red: 0.20, green: 0.78, blue: 0.88)]
+            [Color(red: 0.06, green: 0.38, blue: 0.52), Color(red: 0.10, green: 0.52, blue: 0.65), Color(red: 0.18, green: 0.65, blue: 0.78)]
+        }
+    }
+
+    public var buttonColors: [Color] {
+        switch self {
+        case .smartScan:
+            [Color(red: 0.35, green: 0.22, blue: 0.72), Color(red: 0.52, green: 0.35, blue: 0.88)]
+        case .cleanup:
+            [Color(red: 0.15, green: 0.52, blue: 0.35), Color(red: 0.28, green: 0.68, blue: 0.45)]
+        case .protection:
+            [Color(red: 0.75, green: 0.20, blue: 0.18), Color(red: 0.88, green: 0.35, blue: 0.25)]
+        case .performance:
+            [Color(red: 0.82, green: 0.58, blue: 0.12), Color(red: 0.92, green: 0.70, blue: 0.22)]
+        case .applications:
+            [Color(red: 0.52, green: 0.22, blue: 0.72), Color(red: 0.68, green: 0.35, blue: 0.85)]
+        case .files:
+            [Color(red: 0.12, green: 0.50, blue: 0.62), Color(red: 0.22, green: 0.62, blue: 0.75)]
         }
     }
 
     public var accentColor: Color {
-        colors[0]
+        colors[1]
     }
 }
 
@@ -46,18 +71,6 @@ public struct GradientBackgroundView: View {
     }
 
     public var body: some View {
-        ZStack {
-            theme.gradient
-                .ignoresSafeArea()
-
-            // Subtle radial glow
-            RadialGradient(
-                colors: [.white.opacity(0.1), .clear],
-                center: .top,
-                startRadius: 50,
-                endRadius: 400
-            )
-            .ignoresSafeArea()
-        }
+        theme.gradient
     }
 }

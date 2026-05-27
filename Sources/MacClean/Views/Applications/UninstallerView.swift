@@ -8,6 +8,7 @@ struct UninstallerView: View {
     @State private var associatedFiles: [FileItem] = []
     @State private var selectedFiles: Set<URL> = []
     @State private var isLoading = true
+    @State private var isLoadingFiles = false
     @State private var filter: AppFilter = .all
     @State private var searchText = ""
 
@@ -22,74 +23,87 @@ struct UninstallerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Uninstaller")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
                     Text("Completely remove apps and their leftover files")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
                 Spacer()
             }
-            .padding(20)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
 
-            // Search and filter
-            HStack {
-                TextField("Search apps...", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
+            if isLoading {
+                Spacer()
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(.white)
+                    Text("Discovering installed apps...")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer()
+            } else {
+                HStack(spacing: 10) {
+                    TextField("Search apps...", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
 
-                Picker("Filter", selection: $filter) {
-                    ForEach(AppFilter.allCases, id: \.self) { f in
-                        Text(f.rawValue).tag(f)
+                    Picker("Filter", selection: $filter) {
+                        ForEach(AppFilter.allCases, id: \.self) { f in
+                            Text(f.rawValue).tag(f)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 240)
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
+
+                HSplitView {
+                    appList
+                        .frame(minWidth: 240)
+
+                    if let app = selectedApp {
+                        appDetailView(app)
+                            .frame(minWidth: 280)
+                    } else {
+                        VStack {
+                            Spacer()
+                            Text("Select an app to see its files")
+                                .foregroundStyle(.white.opacity(0.4))
+                                .font(.system(size: 13))
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 260)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-
-            // App list and details
-            HSplitView {
-                appList
-                    .frame(minWidth: 250)
-
-                if let app = selectedApp {
-                    appDetailView(app)
-                        .frame(minWidth: 300)
-                } else {
-                    Text("Select an app to see its files")
-                        .foregroundStyle(.white.opacity(0.5))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
         .task { await loadApps() }
     }
 
     private var filteredApps: [AppInfo] {
         var filtered = apps
-
         switch filter {
         case .all: break
         case .unused: filtered = filtered.filter(\.isUnused)
         case .thirdParty: filtered = filtered.filter { !$0.isAppleApp }
         }
-
         if !searchText.isEmpty {
             filtered = filtered.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText) ||
                 $0.bundleIdentifier.localizedCaseInsensitiveContains(searchText)
             }
         }
-
         return filtered
     }
 
@@ -103,7 +117,7 @@ struct UninstallerView: View {
                     HStack(spacing: 10) {
                         Image(systemName: app.isAppleApp ? "apple.logo" : "app.fill")
                             .foregroundColor(app.isAppleApp ? .secondary : .blue)
-                            .frame(width: 24)
+                            .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(app.name)
@@ -117,7 +131,7 @@ struct UninstallerView: View {
 
                         if app.isUnused {
                             Text("Unused")
-                                .font(.caption2)
+                                .font(.system(size: 10))
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
                                 .background(.orange.opacity(0.2))
@@ -136,9 +150,8 @@ struct UninstallerView: View {
 
     private func appDetailView(_ app: AppInfo) -> some View {
         VStack(spacing: 12) {
-            // App header
             HStack {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(app.name).font(.headline)
                     Text(app.bundleIdentifier).font(.caption).foregroundStyle(.secondary)
                     if let version = app.version {
@@ -148,23 +161,28 @@ struct UninstallerView: View {
                 Spacer()
 
                 if !app.isAppleApp {
-                    Button("Uninstall") {
-                        uninstall(app)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
+                    Button("Uninstall") { uninstall(app) }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.red)
+                        .controlSize(.small)
 
                     Button("Reset") {}
                         .buttonStyle(.bordered)
+                        .controlSize(.small)
                 }
             }
             .padding()
 
-            // Associated files
-            if !associatedFiles.isEmpty {
+            if isLoadingFiles {
+                Spacer()
+                ProgressView("Finding associated files...")
+                    .tint(.secondary)
+                    .font(.system(size: 12))
+                Spacer()
+            } else if !associatedFiles.isEmpty {
                 let totalSize = associatedFiles.reduce(0 as UInt64) { $0 + $1.size }
-                Text("Associated files: \(associatedFiles.count) (\(FileSizeFormatter.format(totalSize)))")
-                    .font(.caption)
+                Text("\(associatedFiles.count) associated files (\(FileSizeFormatter.format(totalSize)))")
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
@@ -183,8 +201,9 @@ struct UninstallerView: View {
 
                         Image(systemName: file.isDirectory ? "folder" : "doc")
                             .foregroundStyle(.secondary)
+                            .font(.system(size: 12))
 
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 1) {
                             Text(file.name).font(.system(size: 12))
                             Text(file.url.deletingLastPathComponent().path(percentEncoded: false))
                                 .font(.system(size: 10))
@@ -200,9 +219,11 @@ struct UninstallerView: View {
                 }
                 .listStyle(.inset)
             } else {
+                Spacer()
                 Text("No associated files found")
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .font(.system(size: 12))
+                Spacer()
             }
         }
     }
@@ -213,16 +234,20 @@ struct UninstallerView: View {
     }
 
     private func loadAssociatedFiles(for app: AppInfo) {
-        associatedFiles = pathFinder.findAssociatedFiles(for: app)
-        selectedFiles = Set(associatedFiles.map(\.url))
+        isLoadingFiles = true
+        associatedFiles = []
+        Task {
+            let files = pathFinder.findAssociatedFiles(for: app)
+            associatedFiles = files
+            selectedFiles = Set(files.map(\.url))
+            isLoadingFiles = false
+        }
     }
 
     private func uninstall(_ app: AppInfo) {
         let filesToRemove = associatedFiles.filter { selectedFiles.contains($0.url) }
         Task {
-            // Move app to trash
             try? FileManager.default.trashItem(at: app.path, resultingItemURL: nil)
-            // Move associated files to trash
             _ = await appState.cleaningEngine.clean(items: filesToRemove, mode: .dryRun)
             await loadApps()
             selectedApp = nil

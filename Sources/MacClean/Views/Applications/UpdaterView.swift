@@ -4,6 +4,7 @@ import MacCleanKit
 struct UpdaterView: View {
     @State private var updates: [AppUpdateChecker.AppUpdate] = []
     @State private var isChecking = false
+    @State private var hasChecked = false
     @State private var apps: [AppInfo] = []
 
     private let discovery = AppDiscovery()
@@ -14,47 +15,48 @@ struct UpdaterView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Updater")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
                     Text("Check for available app updates")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
                 Spacer()
-                Button(isChecking ? "Checking..." : "Check for Updates") {
-                    checkUpdates()
+                if !isChecking {
+                    Button(hasChecked ? "Recheck" : "Check for Updates") {
+                        checkUpdates()
+                    }
+                    .buttonStyle(SuperEllipseButtonStyle(
+                        gradient: ModuleTheme.applications.buttonGradient,
+                        size: CGSize(width: hasChecked ? 100 : 160, height: 34)
+                    ))
                 }
-                .buttonStyle(SuperEllipseButtonStyle(
-                    gradient: ModuleTheme.applications.gradient,
-                    size: CGSize(width: 180, height: 36)
-                ))
-                .disabled(isChecking)
             }
-            .padding(20)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
 
             if isChecking {
                 Spacer()
-                ProgressView("Checking for updates...")
-                    .foregroundStyle(.white)
-                    .tint(.white)
+                ScanProgressRing(progress: 0.5, phase: "Checking for updates...", theme: .applications)
                 Spacer()
-            } else if updates.isEmpty {
+            } else if hasChecked && updates.isEmpty {
                 Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.white.opacity(0.6))
+                VStack(spacing: 14) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.white.opacity(0.8))
                     Text("All apps are up to date")
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 Spacer()
-            } else {
+            } else if !updates.isEmpty {
                 List {
                     ForEach(updates) { update in
                         HStack {
                             Image(systemName: "app.fill")
                                 .foregroundStyle(.blue)
-                                .frame(width: 30)
+                                .frame(width: 26)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(update.app.name)
@@ -77,6 +79,17 @@ struct UpdaterView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
+            } else {
+                Spacer()
+                VStack(spacing: 14) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.white.opacity(0.4))
+                    Text("Click above to check for updates")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
             }
         }
     }
@@ -87,6 +100,7 @@ struct UpdaterView: View {
             apps = await discovery.discoverApps()
             updates = await checker.checkForUpdates(apps: apps)
             isChecking = false
+            hasChecked = true
         }
     }
 }

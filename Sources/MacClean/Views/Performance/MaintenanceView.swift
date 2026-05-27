@@ -17,23 +17,24 @@ struct MaintenanceView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Maintenance")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
                     Text("Run system maintenance tasks to keep your Mac healthy")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
                 Spacer()
                 Button("Run All") { runAll() }
                     .buttonStyle(SuperEllipseButtonStyle(
-                        gradient: ModuleTheme.performance.gradient,
-                        size: CGSize(width: 100, height: 36)
+                        gradient: ModuleTheme.performance.buttonGradient,
+                        size: CGSize(width: 90, height: 34)
                     ))
             }
-            .padding(20)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
 
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: 6) {
                     ForEach(MaintenanceTask.allCases) { task in
                         taskRow(task)
                     }
@@ -47,9 +48,9 @@ struct MaintenanceView: View {
     private func taskRow(_ task: MaintenanceTask) -> some View {
         HStack(spacing: 12) {
             Image(systemName: task.icon)
-                .font(.system(size: 18))
-                .foregroundStyle(.white.opacity(0.8))
-                .frame(width: 30)
+                .font(.system(size: 16))
+                .foregroundStyle(.white.opacity(0.75))
+                .frame(width: 26)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(task.rawValue)
@@ -57,8 +58,8 @@ struct MaintenanceView: View {
                     .foregroundStyle(.white)
                 Text(task.description)
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .lineLimit(2)
+                    .foregroundStyle(.white.opacity(0.45))
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -68,15 +69,16 @@ struct MaintenanceView: View {
             Button {
                 runTask(task)
             } label: {
-                Image(systemName: "play.circle")
+                Image(systemName: "play.circle.fill")
                     .font(.system(size: 20))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(0.6))
             }
             .buttonStyle(.plain)
             .disabled(isRunning(task))
         }
-        .padding(12)
-        .background(.white.opacity(0.08))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 

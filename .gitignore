@@ -2,8 +2,21 @@
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+xcuserdata/
 DerivedData/
 build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
 
 # Swift Package Manager
 .build/
@@ -12,17 +25,26 @@ Package.resolved
 
 # macOS
 .DS_Store
+._*
 *.swp
 *~
+.AppleDouble
+.LSOverride
+Icon?
 
 # IDE
 .idea/
 .vscode/
+*.code-workspace
 
 # Distribution
 *.dmg
 *.pkg
+*.zip
 
-# Secrets / env
+# Signing & Secrets
 .env
 *.xcconfig.local
+*.p12
+*.mobileprovision
+*.provisionprofile

@@ -1,7 +1,9 @@
 import SwiftUI
+import AppKit
 
 @main
 struct MacCleanApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var appState = AppState()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showOnboarding = false
@@ -23,5 +25,12 @@ struct MacCleanApp: App {
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 960, height: 620)
+    }
+}
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

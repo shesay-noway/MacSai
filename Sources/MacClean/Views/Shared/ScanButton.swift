@@ -25,56 +25,98 @@ public struct ScanButton: View {
     }
 
     public var body: some View {
-        Button(action: action) {
-            ZStack {
-                if isScanning {
-                    scanningView
-                } else {
-                    idleView
-                }
+        if isScanning {
+            scanningContent
+        } else {
+            Button(action: action) {
+                idleContent
             }
+            .buttonStyle(SuperEllipseButtonStyle(
+                gradient: theme.buttonGradient,
+                size: CGSize(width: 160, height: 160)
+            ))
         }
-        .buttonStyle(SuperEllipseButtonStyle(
-            gradient: theme.gradient,
-            size: CGSize(width: 200, height: 200)
-        ))
-        .disabled(isScanning)
     }
 
-    private var idleView: some View {
-        VStack(spacing: 8) {
+    private var idleContent: some View {
+        VStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 40, weight: .light))
+                .font(.system(size: 32, weight: .light))
             Text(title)
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 18, weight: .semibold))
             if let subtitle {
                 Text(subtitle)
-                    .font(.system(size: 12))
-                    .opacity(0.8)
+                    .font(.system(size: 11))
+                    .opacity(0.7)
             }
         }
     }
 
-    private var scanningView: some View {
-        VStack(spacing: 12) {
+    private var scanningContent: some View {
+        VStack(spacing: 0) {
             ZStack {
                 Circle()
-                    .stroke(.white.opacity(0.2), lineWidth: 4)
-                    .frame(width: 60, height: 60)
+                    .stroke(.white.opacity(0.15), lineWidth: 6)
 
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(.white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                    .frame(width: 60, height: 60)
+                    .stroke(.white, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut, value: progress)
+                    .animation(.easeInOut(duration: 0.3), value: progress)
 
                 Text("\(Int(progress * 100))%")
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
             }
+            .frame(width: 100, height: 100)
+        }
+    }
+}
 
-            Text("Scanning...")
-                .font(.system(size: 14, weight: .medium))
+public struct ScanProgressRing: View {
+    let progress: Double
+    let phase: String
+    let detail: String?
+    let theme: ModuleTheme
+
+    public init(progress: Double, phase: String, detail: String? = nil, theme: ModuleTheme = .smartScan) {
+        self.progress = progress
+        self.phase = phase
+        self.detail = detail
+        self.theme = theme
+    }
+
+    public var body: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .stroke(.white.opacity(0.12), lineWidth: 7)
+
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(.white, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.35), value: progress)
+
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 110, height: 110)
+
+            VStack(spacing: 6) {
+                Text(phase)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
+                    .contentTransition(.interpolate)
+                    .animation(.easeInOut(duration: 0.2), value: phase)
+
+                if let detail {
+                    Text(detail)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
         }
     }
 }

@@ -55,6 +55,8 @@ cat > "${APP_BUNDLE}/Contents/Info.plist" << PLIST
     <string>14.0</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSUIElement</key>
@@ -62,6 +64,12 @@ cat > "${APP_BUNDLE}/Contents/Info.plist" << PLIST
 </dict>
 </plist>
 PLIST
+
+# Copy icon
+if [ -f "Resources/AppIcon.icns" ]; then
+    cp "Resources/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/"
+    echo "App icon added"
+fi
 
 # Create entitlements
 cat > "${DMG_DIR}/entitlements.plist" << ENTITLEMENTS

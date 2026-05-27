@@ -52,20 +52,25 @@ public struct SuperEllipseButtonStyle: ButtonStyle {
     let gradient: LinearGradient
     let size: CGSize
 
-    public init(gradient: LinearGradient, size: CGSize = CGSize(width: 180, height: 180)) {
+    public init(gradient: LinearGradient, size: CGSize = CGSize(width: 160, height: 160)) {
         self.gradient = gradient
         self.size = size
     }
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 20, weight: .semibold))
+            .font(.system(size: size.height > 60 ? 18 : 14, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size.width, height: size.height)
-            .background(gradient)
-            .clipShape(SuperEllipse(cornerRadius: size.width * 0.3))
-            .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+            .background {
+                ZStack {
+                    gradient
+                    Color.white.opacity(0.08)
+                }
+            }
+            .clipShape(SuperEllipse(cornerRadius: size.width * 0.28))
+            .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.easeInOut(duration: 0.12), value: configuration.isPressed)
     }
 }

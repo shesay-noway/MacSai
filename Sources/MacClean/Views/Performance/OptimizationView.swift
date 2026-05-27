@@ -5,56 +5,68 @@ struct OptimizationView: View {
     @State private var loginItems: [LoginItemsManager.LoginItem] = []
     @State private var launchAgents: [LaunchAgentsManager.LaunchAgent] = []
     @State private var selectedTab = 0
+    @State private var isLoading = true
 
     private let loginManager = LoginItemsManager()
     private let agentManager = LaunchAgentsManager()
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Optimization")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
                     Text("Manage startup items and background processes")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
                 Spacer()
             }
-            .padding(20)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
 
-            // Tab selector
-            Picker("Section", selection: $selectedTab) {
-                Text("Login Items").tag(0)
-                Text("Launch Agents").tag(1)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-
-            // Content
-            Group {
-                if selectedTab == 0 {
-                    loginItemsList
-                } else {
-                    launchAgentsList
+            if isLoading {
+                Spacer()
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(.white)
+                    Text("Loading items...")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
+                Spacer()
+            } else {
+                Picker("Section", selection: $selectedTab) {
+                    Text("Login Items").tag(0)
+                    Text("Launch Agents").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
+
+                Group {
+                    if selectedTab == 0 {
+                        loginItemsList
+                    } else {
+                        launchAgentsList
+                    }
+                }
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
-        .onAppear { refresh() }
+        .task { refresh() }
     }
 
     private var loginItemsList: some View {
         List {
             ForEach(loginItems, id: \.id) { item in
                 HStack {
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(item.name)
                             .font(.system(size: 13, weight: .medium))
                         if let bid = item.bundleIdentifier {
@@ -82,7 +94,7 @@ struct OptimizationView: View {
         List {
             ForEach(launchAgents, id: \.id) { agent in
                 HStack {
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(agent.label)
                             .font(.system(size: 13, weight: .medium))
                         if let program = agent.program {
@@ -95,7 +107,7 @@ struct OptimizationView: View {
                     Spacer()
                     if agent.isSystem {
                         Text("System")
-                            .font(.caption2)
+                            .font(.system(size: 10))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(.orange.opacity(0.2))
@@ -110,5 +122,6 @@ struct OptimizationView: View {
     private func refresh() {
         loginItems = loginManager.getLoginItems()
         launchAgents = agentManager.getLaunchAgents()
+        isLoading = false
     }
 }
