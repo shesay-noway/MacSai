@@ -27,14 +27,14 @@ struct MacCleanMenuApp: App {
     }
 
     private func startPolling() {
-        Task {
+        Task { @MainActor in
             stats = await statsCollector.collect()
             networkSpeed = await networkMonitor.measure()
         }
         timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-            Task {
-                stats = await statsCollector.collect()
-                networkSpeed = await networkMonitor.measure()
+            Task { @MainActor [statsCollector, networkMonitor] in
+                self.stats = await statsCollector.collect()
+                self.networkSpeed = await networkMonitor.measure()
             }
         }
     }
