@@ -42,6 +42,27 @@ Mac Clean is a **free, open-source** macOS app that cleans junk files, removes m
 
 **No subscriptions. No telemetry. No ads. Just a clean Mac.**
 
+## How Mac Clean compares
+
+|  | Mac Clean | CleanMyMac | Pearcleaner | PureMac | OnyX |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Price** | Free | $39.95/yr | Free | Free | Free |
+| **Open source** | ✅ BSD-3 | ❌ | ✅ Fair-code | ✅ MIT | ❌ |
+| **Telemetry** | ❌ None | ⚠️ Yes | ❌ None | ❌ None | ❌ None |
+| **Smart Scan (one-click)** | ✅ | ✅ | ❌ | ➖ Partial | ❌ |
+| **System Junk (16 categories)** | ✅ | ✅ | ➖ | ✅ | ➖ Limited |
+| **Malware scanner** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Browser privacy cleaner** | ✅ | ✅ | ❌ | ❌ | ➖ |
+| **Uninstaller with leftover detection** | ✅ 10-level | ✅ | ✅ Focus | ❌ | ❌ |
+| **Disk treemap visualizer** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Duplicate finder** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Menu bar system monitor** | ✅ | ✅ Menu | ❌ | ❌ | ❌ |
+| **Maintenance scripts** | ✅ | ✅ | ❌ | ❌ | ✅ Strong |
+| **Notarized by Apple** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **macOS version** | 14+ | 13+ | 13+ | 13+ | varies |
+
+> CleanMyMac is a great product — they deserve the revenue from users who want a polished, supported experience. Mac Clean is for everyone who'd rather have transparent source code and zero subscription.
+
 ## Features
 
 ### Cleanup
