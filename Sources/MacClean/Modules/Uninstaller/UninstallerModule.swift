@@ -98,21 +98,10 @@ public actor AppDiscovery {
     }
 }
 
-// MARK: - 10-Level App Path Finder
+// MARK: - App Path Finder (system-side wrapper around MacCleanKit.AppMatching)
 
 public struct AppPathFinder: Sendable {
-    public enum MatchLevel: Int, CaseIterable, Sendable {
-        case bundleIDExact = 1       // com.google.Chrome
-        case displayName = 2        // "Google Chrome"
-        case appDirName = 3         // "Google Chrome.app"
-        case normalizedName = 4     // "googlechrome"
-        case bundleIDComponents = 5 // "google.Chrome"
-        case baseBundleID = 6       // strip .helper, .agent, .daemon
-        case versionStripped = 7    // remove version numbers
-        case companyName = 8        // "google"
-        case teamIdentifier = 9    // from code signature
-        case entitlements = 10     // from code signing entitlements
-    }
+    public typealias MatchLevel = AppMatching.MatchLevel
 
     public let maxLevel: MatchLevel
 
@@ -120,28 +109,20 @@ public struct AppPathFinder: Sendable {
         self.maxLevel = maxLevel
     }
 
-    private static let librarySubdirectories: [String] = [
-        "Application Support", "Caches", "Containers", "Group Containers",
-        "Preferences", "Logs", "Application Scripts", "Cookies",
-        "HTTPStorages", "LaunchAgents", "Saved Application State",
-        "Internet Plug-Ins", "PreferencePanes", "PrivilegedHelperTools",
-        "Services", "WebKit", "Frameworks",
-    ]
-
     public func findAssociatedFiles(for app: AppInfo) -> [FileItem] {
-        let patterns = generatePatterns(for: app)
+        let patterns = AppMatching.generatePatterns(for: app, maxLevel: maxLevel)
         var found: [FileItem] = []
         let fm = FileManager.default
 
-        for subdir in Self.librarySubdirectories {
+        for subdir in AppMatching.librarySubdirectories {
             let dirURL = MCConstants.userLibrary.appending(path: subdir)
-            guard let contents = try? fm.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: [
-                .fileSizeKey, .totalFileAllocatedSizeKey, .isDirectoryKey,
-            ]) else { continue }
+            guard let contents = try? fm.contentsOfDirectory(
+                at: dirURL,
+                includingPropertiesForKeys: [.fileSizeKey, .totalFileAllocatedSizeKey, .isDirectoryKey]
+            ) else { continue }
 
             for itemURL in contents {
-                let itemName = itemURL.lastPathComponent.lowercased()
-                if patterns.contains(where: { itemName.contains($0) }) {
+                if AppMatching.filenameMatches(itemURL.lastPathComponent, patterns: patterns) {
                     if let fileItem = makeFileItem(from: itemURL) {
                         found.append(fileItem)
                     }
@@ -156,8 +137,7 @@ public struct AppPathFinder: Sendable {
             else { continue }
 
             for itemURL in contents where itemURL.pathExtension == "plist" {
-                let itemName = itemURL.lastPathComponent.lowercased()
-                if patterns.contains(where: { itemName.contains($0) }) {
+                if AppMatching.filenameMatches(itemURL.lastPathComponent, patterns: patterns) {
                     if let fileItem = makeFileItem(from: itemURL) {
                         found.append(fileItem)
                     }
@@ -166,76 +146,6 @@ public struct AppPathFinder: Sendable {
         }
 
         return found
-    }
-
-    private func generatePatterns(for app: AppInfo) -> Set<String> {
-        var patterns: Set<String> = []
-        let levels = MatchLevel.allCases.filter { $0.rawValue <= maxLevel.rawValue }
-
-        for level in levels {
-            switch level {
-            case .bundleIDExact:
-                patterns.insert(app.bundleIdentifier.lowercased())
-
-            case .displayName:
-                patterns.insert(app.name.lowercased())
-
-            case .appDirName:
-                let dirName = app.path.deletingPathExtension().lastPathComponent.lowercased()
-                patterns.insert(dirName)
-
-            case .normalizedName:
-                let normalized = app.name.lowercased().filter(\.isLetter)
-                if normalized.count >= 3 {
-                    patterns.insert(normalized)
-                }
-
-            case .bundleIDComponents:
-                let components = app.bundleIdentifier.components(separatedBy: ".")
-                if components.count >= 2 {
-                    let last2 = components.suffix(2).joined(separator: ".").lowercased()
-                    patterns.insert(last2)
-                }
-
-            case .baseBundleID:
-                var baseID = app.bundleIdentifier.lowercased()
-                for suffix in [".helper", ".agent", ".daemon", ".launcher", ".updater"] {
-                    if baseID.hasSuffix(suffix) {
-                        baseID = String(baseID.dropLast(suffix.count))
-                    }
-                }
-                patterns.insert(baseID)
-
-            case .versionStripped:
-                let stripped = app.name.replacingOccurrences(
-                    of: "\\d+(\\.\\d+)*",
-                    with: "",
-                    options: .regularExpression
-                ).trimmingCharacters(in: .whitespaces).lowercased()
-                if stripped.count >= 3 {
-                    patterns.insert(stripped)
-                }
-
-            case .companyName:
-                let components = app.bundleIdentifier.components(separatedBy: ".")
-                if components.count >= 2 {
-                    let company = components[1].lowercased()
-                    if company.count >= 3 && company != "apple" {
-                        patterns.insert(company)
-                    }
-                }
-
-            case .teamIdentifier:
-                // Would require Security.framework code signing APIs
-                break
-
-            case .entitlements:
-                // Would require Security.framework entitlement reading
-                break
-            }
-        }
-
-        return patterns
     }
 
     private func makeFileItem(from url: URL) -> FileItem? {
@@ -266,7 +176,6 @@ public struct AppPathFinder: Sendable {
             includingPropertiesForKeys: [.totalFileAllocatedSizeKey],
             options: []
         ) else { return 0 }
-
         var total: UInt64 = 0
         while let fileURL = enumerator.nextObject() as? URL {
             let v = try? fileURL.resourceValues(forKeys: [.totalFileAllocatedSizeKey])
