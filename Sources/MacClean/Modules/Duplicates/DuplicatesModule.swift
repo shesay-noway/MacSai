@@ -8,8 +8,6 @@ public struct DuplicatesModule: ScanModule {
     public let category = ModuleCategory.files
     public let includedInSmartScan = false
 
-    public static let maxHashableFileSize: UInt64 = 500 * 1024 * 1024 // 500 MB
-
     private let scanner = TargetedScanner()
 
     public init() {}
@@ -20,99 +18,69 @@ public struct DuplicatesModule: ScanModule {
                 path: MCConstants.home,
                 recursive: true,
                 maxDepth: 5,
-                minSize: 1024, // Skip tiny files
+                minSize: 1024,
                 excludePatterns: ["Library", ".Trash", ".git", "node_modules", ".build"]
             ),
         ]
 
         let items = await scanner.scan(targets: targets)
         let files = items.filter { !$0.isDirectory }
-
         let duplicateGroups = await findDuplicates(files)
+        let duplicates = DuplicateDetection.extractDeletableDuplicates(duplicateGroups)
 
-        var duplicateItems: [FileItem] = []
-        for group in duplicateGroups {
-            // Keep the first file (original), mark the rest as duplicates
-            for item in group.dropFirst() {
-                duplicateItems.append(item)
-            }
-        }
-
-        guard !duplicateItems.isEmpty else { return [] }
-        return [ScanResult(category: .duplicates, items: duplicateItems, autoSelect: false)]
+        guard !duplicates.isEmpty else { return [] }
+        return [ScanResult(category: .duplicates, items: duplicates, autoSelect: false)]
     }
 
-    // Progressive duplicate detection pipeline (parallel)
+    /// Run the full pipeline. Pure decisions come from `DuplicateDetection`
+    /// in MacCleanKit; the hashing itself uses CryptoKit + FileHandle and
+    /// lives here.
     public func findDuplicates(_ files: [FileItem]) async -> [[FileItem]] {
-        // Stage 1: Group by size (eliminates ~80-90%)
-        // Skip files > 500MB to avoid hour-long hashes on huge files
-        let hashable = files.filter { $0.size <= Self.maxHashableFileSize }
-        let sizeGroups = Dictionary(grouping: hashable) { $0.size }
-        let candidates = sizeGroups.values.filter { $0.count > 1 }
+        // Stage 1: size grouping (pure)
+        let candidates = DuplicateDetection.sizeGroups(files)
 
-        // Stage 2: Partial hash (first 4KB) — parallel
-        let partialResults = await withTaskGroup(of: (String, FileItem)?.self) { group -> [(String, FileItem)] in
+        // Stage 2: partial hash (parallel)
+        let partialResults = await withTaskGroup(of: (key: String, item: FileItem)?.self) {
+            group -> [(key: String, item: FileItem)] in
             for sizeGroup in candidates {
                 for item in sizeGroup {
                     group.addTask {
                         guard let hash = Self.partialHash(item.url) else { return nil }
-                        return ("\(item.size)-\(hash)", item)
+                        return (key: "\(item.size)-\(hash)", item: item)
                     }
                 }
             }
-            var out: [(String, FileItem)] = []
-            for await result in group {
-                if let r = result { out.append(r) }
-            }
+            var out: [(key: String, item: FileItem)] = []
+            for await r in group { if let r { out.append(r) } }
             return out
         }
+        let partialCandidates = DuplicateDetection.partialGroups(partialResults)
 
-        let partialHashGroups = Dictionary(grouping: partialResults, by: \.0)
-            .mapValues { $0.map(\.1) }
-        let partialCandidates = partialHashGroups.values.filter { $0.count > 1 }
-
-        // Stage 3: Full hash (only for remaining candidates) — parallel
-        let fullResults = await withTaskGroup(of: (String, FileItem)?.self) { group -> [(String, FileItem)] in
+        // Stage 3: full hash (parallel)
+        let fullResults = await withTaskGroup(of: (key: String, item: FileItem)?.self) {
+            group -> [(key: String, item: FileItem)] in
             for partialGroup in partialCandidates {
                 for item in partialGroup {
                     group.addTask {
                         guard let hash = Self.fullHash(item.url) else { return nil }
-                        return (hash, item)
+                        return (key: hash, item: item)
                     }
                 }
             }
-            var out: [(String, FileItem)] = []
-            for await result in group {
-                if let r = result { out.append(r) }
-            }
+            var out: [(key: String, item: FileItem)] = []
+            for await r in group { if let r { out.append(r) } }
             return out
         }
 
-        let fullHashGroups = Dictionary(grouping: fullResults, by: \.0)
-            .mapValues { $0.map(\.1) }
-
-        // Stage 4: Filter out hard links (same inode)
-        return fullHashGroups.values
-            .filter { $0.count > 1 }
-            .map { group in
-                var seen: Set<UInt64> = []
-                return group.filter { item in
-                    if item.inode == 0 || seen.insert(item.inode).inserted {
-                        return true
-                    }
-                    return false
-                }
-            }
-            .filter { $0.count > 1 }
+        // Stage 4: dedup hard links (pure)
+        return DuplicateDetection.fullGroupsAndDedupHardLinks(fullResults)
     }
 
     static func partialHash(_ url: URL, bytes: Int = 4096) -> String? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
-
         let data = handle.readData(ofLength: bytes)
         guard !data.isEmpty else { return nil }
-
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
     }
@@ -120,14 +88,12 @@ public struct DuplicatesModule: ScanModule {
     static func fullHash(_ url: URL) -> String? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
-
         var hasher = SHA256()
         while true {
-            let chunk = handle.readData(ofLength: 65536) // 64KB chunks
+            let chunk = handle.readData(ofLength: 65536)
             if chunk.isEmpty { break }
             hasher.update(data: chunk)
         }
-
         let digest = hasher.finalize()
         return digest.map { String(format: "%02x", $0) }.joined()
     }
