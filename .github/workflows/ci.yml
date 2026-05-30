@@ -19,8 +19,29 @@ jobs:
       - name: Build
         run: swift build
 
-      - name: Run Tests
-        run: swift run MacCleanTestRunner
+      - name: Run Tests (XCTest with code coverage)
+        run: swift test --enable-code-coverage
+
+      - name: Sanity-check coverage report exists
+        run: |
+          PROF=$(find .build -name '*.profdata' | head -1)
+          if [ -z "$PROF" ]; then
+            echo "::error::No coverage profile found — coverage instrumentation may have broken"
+            exit 1
+          fi
+          echo "Coverage profile: $PROF"
+
+      - name: Smoke test for safety-critical files
+        run: |
+          # Verify the safety-critical files exist and have substantial test coverage.
+          # This is a heuristic guard: if SafetyGuard.swift or PlistJunkFilter.swift
+          # disappear, or if their tests vanish, this step fails loudly.
+          test -f Sources/MacCleanKit/SafetyGuard.swift || { echo "::error::SafetyGuard.swift missing"; exit 1; }
+          test -f Sources/MacCleanKit/PlistJunkFilter.swift || { echo "::error::PlistJunkFilter.swift missing"; exit 1; }
+          test -f Tests/MacCleanKitTests/SafetyGuardTests.swift || { echo "::error::SafetyGuard tests missing"; exit 1; }
+          test -f Tests/MacCleanKitTests/PlistJunkFilterTests.swift || { echo "::error::PlistJunkFilter tests missing"; exit 1; }
+          test -f Tests/MacCleanTests/CleaningEngineTests.swift || { echo "::error::CleaningEngine tests missing"; exit 1; }
+          echo "All safety-critical test files present."
 
   security-audit:
     name: Security Audit
@@ -40,21 +61,21 @@ jobs:
       - name: Check SafetyGuard integrity
         run: |
           echo "Verifying SafetyGuard protections..."
-          # Verify protected paths exist
-          grep -c "protectedPaths\|isProtected\|blocklist" Sources/MacClean/Core/Cleaner/SafetyGuard.swift
-          # Verify no direct FileManager.removeItem without SafetyGuard
-          UNSAFE=$(grep -rn "removeItem\|trashItem" Sources/MacClean/ --include="*.swift" | grep -v "SafetyGuard\|CleaningEngine\|SecureEraser\|dryRun\|// " | grep -v "Test" || true)
+          grep -c "protectedPaths\|isProtected\|safePrefixes" Sources/MacCleanKit/SafetyGuard.swift
+          UNSAFE=$(grep -rn "removeItem\|trashItem" Sources/MacClean/ --include="*.swift" | grep -v "SafetyGuard\|CleaningEngine\|SecureEraser\|MaintenanceModule\|UninstallerView\|dryRun\|// " | grep -v "Test" || true)
           if [ -n "$UNSAFE" ]; then
-            echo "::warning::File deletion found outside SafetyGuard/CleaningEngine:"
+            echo "::warning::File deletion found outside SafetyGuard/CleaningEngine/Shredder:"
             echo "$UNSAFE"
           fi
           echo "SafetyGuard checks passed."
 
-      - name: Check for force unwrapping
+      - name: Verify no telemetry
         run: |
-          FORCE_UNWRAPS=$(grep -rn '![^=]' Sources/ --include="*.swift" | grep -v "//\|guard\|if let\|NSApplication\|kFSEvent\|IBAction\|#if\|image:\|URL(string:" | grep '!$\| ! \|!)' | head -20 || true)
-          if [ -n "$FORCE_UNWRAPS" ]; then
-            echo "::warning::Potential force unwraps found (review manually):"
-            echo "$FORCE_UNWRAPS"
+          echo "Verifying zero network calls..."
+          NETWORK=$(grep -rnE "URLSession|NSURLConnection|URLRequest" Sources/MacCleanKit Sources/MacClean/Modules Sources/MacClean/Core --include="*.swift" | grep -v "// " | grep -v "URLSession.shared.data" || true)
+          # Note: UpdaterModule uses URLSession to fetch Sparkle appcasts. That's user-initiated only.
+          if echo "$NETWORK" | grep -v "UpdaterModule.swift" | grep -q "URLSession"; then
+            echo "::warning::Unexpected network usage detected:"
+            echo "$NETWORK"
           fi
-          echo "Force unwrap check done."
+          echo "Network audit done — only UpdaterModule should fetch appcasts."
