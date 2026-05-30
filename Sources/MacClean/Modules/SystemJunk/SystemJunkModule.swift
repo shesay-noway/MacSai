@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import MacCleanKit
 
 public struct SystemJunkModule: ScanModule {
@@ -10,34 +11,61 @@ public struct SystemJunkModule: ScanModule {
 
     public init() {}
 
+    /// All categories the System Junk module runs. The pure target / filter
+    /// declarations live in MacCleanKit and are tested there; this list is
+    /// the only place the *full set* is composed.
+    public static let allCategories: [JunkCategory] = [
+        UserCacheCategory(),
+        SystemCacheCategory(),
+        UserLogCategory(),
+        SystemLogCategory(),
+        LanguageFilesCategory(),
+        BrokenPreferencesCategory(),
+        BrokenLoginItemsCategory(),
+        DocumentVersionsCategory(),
+        BrokenDownloadsCategory(),
+        IOSDeviceBackupsCategory(),
+        OldUpdatesCategory(),
+        UniversalBinariesCategory(),
+        XcodeJunkCategory(),
+        DeletedUsersCategory(),
+        UnusedDiskImagesCategory(),
+        IncompleteDownloadsCategory(),
+    ]
+
     public func scan() async -> [ScanResult] {
-        let categories: [JunkCategory] = [
-            UserCacheCategory(),
-            SystemCacheCategory(),
-            UserLogCategory(),
-            SystemLogCategory(),
-            LanguageFilesCategory(),
-            BrokenPreferencesCategory(),
-            BrokenLoginItemsCategory(),
-            DocumentVersionsCategory(),
-            BrokenDownloadsCategory(),
-            IOSDeviceBackupsCategory(),
-            OldUpdatesCategory(),
-            UniversalBinariesCategory(),
-            XcodeJunkCategory(),
-            DeletedUsersCategory(),
-            UnusedDiskImagesCategory(),
-            IncompleteDownloadsCategory(),
-        ]
+        let categories = Self.allCategories
 
         return await withTaskGroup(of: ScanResult?.self) { group in
             for cat in categories {
                 group.addTask {
                     let items = await scanner.scan(targets: cat.targets)
-                    guard !items.isEmpty else { return nil }
+                    var filtered = items
+
+                    // Apply category-specific post-filter logic.
+                    if let brokenPrefs = cat as? BrokenPreferencesCategory {
+                        filtered = brokenPrefs.filterBroken(
+                            items,
+                            loadData: { try? Data(contentsOf: $0) },
+                            appExistsForBundleID: {
+                                NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil
+                            }
+                        )
+                    } else if let brokenLogin = cat as? BrokenLoginItemsCategory {
+                        filtered = brokenLogin.filterBroken(
+                            items,
+                            loadData: { try? Data(contentsOf: $0) },
+                            fileExists: { FileManager.default.fileExists(atPath: $0) },
+                            appExistsForBundleID: {
+                                NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil
+                            }
+                        )
+                    }
+
+                    guard !filtered.isEmpty else { return nil }
                     return ScanResult(
                         category: cat.scanCategory,
-                        items: items,
+                        items: filtered,
                         autoSelect: cat.scanCategory.autoSelect
                     )
                 }
