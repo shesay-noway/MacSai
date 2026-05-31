@@ -24,6 +24,7 @@ public actor ThinAppBundleOperation {
 
     public enum OpError: Error, LocalizedError, Sendable {
         case noFatBinariesFound
+        case bundleInUse(pids: [String])
         case bundleResignFailed(stderr: String)
         case bundleVerifyFailed(stderr: String)
 
@@ -31,6 +32,8 @@ public actor ThinAppBundleOperation {
             switch self {
             case .noFatBinariesFound:
                 "no fat (universal) Mach-O binaries found in bundle"
+            case .bundleInUse(let pids):
+                "bundle is in use by process(es) \(pids.joined(separator: ", ")) — quit the app and try again"
             case .bundleResignFailed(let s):
                 "bundle re-sign failed: \(s)"
             case .bundleVerifyFailed(let s):
@@ -45,6 +48,15 @@ public actor ThinAppBundleOperation {
     public init() {}
 
     public func thin(bundle: URL, to targetArch: BinaryArch) async throws -> Result {
+        // Pre-flight: nothing else may be using the bundle. If the user is
+        // running Slack and tries to thin Slack, lipo would succeed but the
+        // running process holds stale handles into the old binary that's
+        // now sitting in our temp dir. Refuse rather than half-mutate.
+        let busyPIDs = try Self.pidsHoldingFilesIn(bundle: bundle)
+        if !busyPIDs.isEmpty {
+            throw OpError.bundleInUse(pids: busyPIDs)
+        }
+
         let binaries = MachOWalker.fatBinaries(in: bundle)
         guard !binaries.isEmpty else { throw OpError.noFatBinariesFound }
 
@@ -87,6 +99,27 @@ public actor ThinAppBundleOperation {
             perBinaryErrors: perBin,
             bundleVerifyFailed: verifyFailed
         )
+    }
+
+    // MARK: - lsof pre-flight
+
+    /// Returns the PIDs of any processes with open file descriptors anywhere
+    /// inside `bundle`. Implemented via `lsof +D` — recursive directory
+    /// scan. Returns an empty array if nothing is holding the bundle open.
+    ///
+    /// `lsof` exits 1 in BOTH cases of "no match" and "yes match, also some
+    /// warnings printed to stderr" — so we ignore the exit code and parse
+    /// stdout directly. Empty stdout → bundle is quiescent.
+    static func pidsHoldingFilesIn(bundle: URL) throws -> [String] {
+        let (_, stdout, _) = try runProcess("/usr/sbin/lsof", [
+            "-F", "p",                                       // PID-only output
+            "+D", bundle.path(percentEncoded: false),        // recurse into dir
+        ])
+        var pids = Set<String>()
+        for line in stdout.split(separator: "\n") where line.first == "p" {
+            pids.insert(String(line.dropFirst()))
+        }
+        return Array(pids)
     }
 
     // MARK: - codesign helpers

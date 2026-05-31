@@ -131,6 +131,29 @@ final class ThinAppBundleOperationTests: XCTestCase {
         XCTAssertEqual(archs(fwBinary), [BundleHostInfo.current.hostArch.lipoName])
     }
 
+    func testRefusesWhenBundleHasAnOpenFile() async throws {
+        try writeMinimalApp(name: "BusyApp", bundleID: "com.acme.busy")
+        let exec = bundleURL.appending(path: "Contents/MacOS/BusyApp")
+
+        // Hold the binary open from this test process — lsof +D <bundle>
+        // will see at least one PID (us).
+        let handle = try FileHandle(forReadingFrom: exec)
+        defer { try? handle.close() }
+
+        let op = ThinAppBundleOperation()
+        do {
+            _ = try await op.thin(bundle: bundleURL, to: BundleHostInfo.current.hostArch)
+            XCTFail("operation must refuse when bundle has open file descriptors")
+        } catch ThinAppBundleOperation.OpError.bundleInUse(let pids) {
+            XCTAssertFalse(pids.isEmpty,
+                           "bundleInUse error must surface at least one PID")
+        }
+
+        // Binary still original (untouched).
+        XCTAssertEqual(Set(archs(exec)), Set(["x86_64", "arm64"]),
+                       "binary must remain untouched after refusal")
+    }
+
     func testThrowsWhenNoFatBinariesPresent() async throws {
         // App with only a non-fat main exec.
         let macOS = bundleURL.appending(path: "Contents/MacOS")

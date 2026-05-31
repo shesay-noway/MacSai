@@ -22,6 +22,7 @@ public actor ThinBinaryOperation {
 
     public enum OpError: Error, LocalizedError, Sendable {
         case notFat
+        case raceDetected(String)
         case lipoFailed(stderr: String)
         case codesignFailed(stderr: String)
         case verifyFailed(stderr: String)
@@ -36,6 +37,8 @@ public actor ThinBinaryOperation {
             switch self {
             case .notFat:
                 "input binary is not a fat (universal) Mach-O"
+            case .raceDetected(let message):
+                "binary changed under us while thinning: \(message)"
             case .lipoFailed(let stderr):
                 "lipo failed: \(stderr)"
             case .codesignFailed(let stderr):
@@ -88,6 +91,7 @@ public actor ThinBinaryOperation {
         let originalAttrs = try fm.attributesOfItem(atPath: path)
         let originalSize = (originalAttrs[.size] as? NSNumber)?.uint64Value ?? 0
         let originalMode = (originalAttrs[.posixPermissions] as? NSNumber)?.int16Value ?? 0o755
+        let originalInode = (originalAttrs[.systemFileNumber] as? NSNumber)?.uint64Value ?? 0
 
         // 2. Stage everything in a separate temp directory — NOT next to the
         //    original. codesign walks the bundle subtree looking for
@@ -101,6 +105,19 @@ public actor ThinBinaryOperation {
 
         let thinningURL = workDir.appending(path: "\(binary.lastPathComponent).thinned")
         let backupURL = workDir.appending(path: "\(binary.lastPathComponent).original")
+
+        // Race check: re-stat immediately before lipo. If the file has been
+        // replaced (different inode) or grown/shrunk (different size), abort
+        // — something else is rewriting this file and our lipo would overwrite
+        // their changes.
+        let preLipoAttrs = try fm.attributesOfItem(atPath: path)
+        let preLipoSize = (preLipoAttrs[.size] as? NSNumber)?.uint64Value ?? 0
+        let preLipoInode = (preLipoAttrs[.systemFileNumber] as? NSNumber)?.uint64Value ?? 0
+        if preLipoInode != originalInode || preLipoSize != originalSize {
+            throw OpError.raceDetected(
+                "inode \(originalInode)→\(preLipoInode) or size \(originalSize)→\(preLipoSize) changed between start and lipo step"
+            )
+        }
 
         try Self.runLipoThin(
             input: path,
