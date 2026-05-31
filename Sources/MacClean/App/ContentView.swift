@@ -1,4 +1,5 @@
 import SwiftUI
+import MacCleanKit
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
@@ -23,6 +24,11 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .windowToolbar)
         }
         .navigationTitle("Mac Clean")
+        // Native macOS pattern: small grey second line under the title.
+        // MCVersion.app is generated at build time from the package-root
+        // VERSION file by the VersionGen build plugin — single source of
+        // truth, no manual sync.
+        .navigationSubtitle("v\(MCVersion.app)")
     }
 
     @ViewBuilder

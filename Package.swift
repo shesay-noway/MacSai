@@ -32,7 +32,13 @@ let package = Package(
         .target(
             name: "MacCleanKit",
             dependencies: [],
-            path: "Sources/MacCleanKit"
+            path: "Sources/MacCleanKit",
+            plugins: [.plugin(name: "VersionGen")]
+        ),
+        .plugin(
+            name: "VersionGen",
+            capability: .buildTool(),
+            path: "Plugins/VersionGen"
         ),
         .executableTarget(
             name: "MacCleanHelper",
