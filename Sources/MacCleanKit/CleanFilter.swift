@@ -53,3 +53,22 @@ public enum CleanFilter {
         return true
     }
 }
+
+public extension Array where Element == ScanResult {
+    /// Drops items the current process couldn't trash, per
+    /// `CleanFilter.isCleanableByCurrentProcess`. Producing modules
+    /// call this on their results before returning — that way every
+    /// caller (ScanCoordinator, each per-module ViewModel/View that
+    /// invokes `module.scan()` directly) sees a filtered set without
+    /// needing to know about the filter. The contract is: a
+    /// `ScanModule.scan()` only returns items the user can act on.
+    func filteringUncleanable() -> [ScanResult] {
+        map { result in
+            ScanResult(
+                category: result.category,
+                items: result.items.filter { CleanFilter.isCleanableByCurrentProcess($0.url) },
+                autoSelect: result.autoSelect
+            )
+        }
+    }
+}
