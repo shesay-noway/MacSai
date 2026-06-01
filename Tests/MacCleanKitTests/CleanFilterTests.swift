@@ -77,6 +77,38 @@ final class CleanFilterTests: XCTestCase {
             [.posixPermissions: 0o755], ofItemAtPath: dataVaultLike.path)
     }
 
+    // MARK: Array extension
+
+    func testFilteringUncleanableKeepsCleanableItemsAndDropsRest() throws {
+        // Real cleanable file in a writable dir.
+        let okFile = tmpRoot.appending(path: "ok.cache")
+        FileManager.default.createFile(atPath: okFile.path, contents: Data([1, 2, 3]))
+        // Unwritable parent: simulates root-owned `/Library/Caches/com.apple.*`.
+        let locked = tmpRoot.appending(path: "locked")
+        try FileManager.default.createDirectory(at: locked, withIntermediateDirectories: true)
+        let trapped = locked.appending(path: "trapped.log")
+        FileManager.default.createFile(atPath: trapped.path, contents: Data())
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o555], ofItemAtPath: locked.path)
+
+        let ok = FileItem(url: okFile, name: "ok.cache", size: 3, allocatedSize: 3, isDirectory: false)
+        let bad = FileItem(url: trapped, name: "trapped.log", size: 0, allocatedSize: 0, isDirectory: false)
+
+        let input: [ScanResult] = [
+            ScanResult(category: .userCaches, items: [ok, bad])
+        ]
+        let filtered = input.filteringUncleanable()
+
+        XCTAssertEqual(filtered.count, 1)
+        XCTAssertEqual(filtered[0].items.count, 1, "Only the cleanable item should survive")
+        XCTAssertEqual(filtered[0].items.first?.name, "ok.cache")
+        // Category and autoSelect are preserved across the filter.
+        XCTAssertEqual(filtered[0].category, .userCaches)
+
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755], ofItemAtPath: locked.path)
+    }
+
     func testFilesInsideUnwritableDirectoryAreNotCleanable() throws {
         // Even individual files inside an unwritable parent should be
         // dropped — this is what catches every leaf inside a root-owned
