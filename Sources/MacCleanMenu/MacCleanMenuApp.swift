@@ -108,6 +108,8 @@ enum MenuPalette {
     static let card = Color(red: 0.10, green: 0.07, blue: 0.22)
     static let teal = Color(red: 0.40, green: 0.85, blue: 0.82)
     static let yellow = Color(red: 0.98, green: 0.82, blue: 0.30)
+    static let green = Color(red: 0.24, green: 0.80, blue: 0.47)
+    static let red = Color(red: 0.93, green: 0.33, blue: 0.34)
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.58)
 
@@ -198,18 +200,10 @@ struct MenuContentView: View {
         }
     }
 
-    /// Uniform height for every stat card so the 2×2 grid stays aligned
-    /// regardless of whether a card has a subtitle line.
-    private static let statCardHeight: CGFloat = 150
-
     private func ringCard(icon: String, label: String, value: Double, center: String, sub: String?, forceColor: Color? = nil) -> some View {
         let color = forceColor ?? MenuPalette.barColor(value)
-        return VStack(spacing: 9) {
-            HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 11, weight: .semibold)).foregroundStyle(color)
-                Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(MenuPalette.textPrimary)
-                Spacer()
-            }
+        return VStack(spacing: 12) {
+            statHeader(icon: icon, label: label, tint: color)
             RingGauge(value: value, color: color, center: center)
                 .frame(width: 58, height: 58)
             // Always render the subtitle line (a space when empty) so
@@ -219,30 +213,33 @@ struct MenuContentView: View {
                 .foregroundStyle(MenuPalette.textSecondary)
                 .lineLimit(1)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .frame(height: Self.statCardHeight)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .padding(16)
         .glassCard()
     }
 
     private func uptimeCard(_ s: SystemStatsCollector.SystemStats) -> some View {
-        VStack(spacing: 9) {
-            HStack(spacing: 6) {
-                Image(systemName: "clock").font(.system(size: 11, weight: .semibold)).foregroundStyle(MenuPalette.teal)
-                Text("Uptime").font(.system(size: 12, weight: .semibold)).foregroundStyle(MenuPalette.textPrimary)
-                Spacer()
-            }
-            Spacer(minLength: 0)
-            Text(formatUptime(s.uptime)).font(.system(size: 20, weight: .semibold, design: .rounded)).foregroundStyle(.white)
-            Spacer(minLength: 0)
+        VStack(spacing: 12) {
+            statHeader(icon: "clock", label: "Uptime", tint: MenuPalette.teal)
+            Text(formatUptime(s.uptime))
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(height: 58)
             Text(" ").font(.system(size: 10, design: .monospaced))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .frame(height: Self.statCardHeight)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .padding(16)
         .glassCard()
+    }
+
+    /// Card header: icon + label, pinned top-left (16pt inset comes from
+    /// the card's padding). Shared so every stat card aligns identically.
+    private func statHeader(icon: String, label: String, tint: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: 11, weight: .semibold)).foregroundStyle(tint)
+            Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(MenuPalette.textPrimary)
+            Spacer()
+        }
     }
 
     // MARK: Network strip
@@ -368,27 +365,21 @@ struct MenuContentView: View {
         HStack(spacing: 8) {
             Button { TipAction.open() } label: {
                 HStack(spacing: 6) {
-                    Image(nsImage: Self.footerIcon)
-                    Text("Open Mac Clean").font(.system(size: 12, weight: .bold)).foregroundStyle(Color(red:0.16,green:0.10,blue:0.30))
+                    Image(systemName: "leaf.fill").font(.system(size: 11, weight: .bold))
+                    Text("Open Mac Clean").font(.system(size: 12, weight: .bold))
                 }
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity).padding(.vertical, 8)
-                .background(MenuPalette.yellow, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .background(MenuPalette.green, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             }.buttonStyle(.plain)
 
             Button { NSApplication.shared.terminate(nil) } label: {
-                Image(systemName: "power").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.8))
+                Image(systemName: "power").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
                     .frame(width: 34, height: 32)
-                    .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .background(MenuPalette.red, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             }.buttonStyle(.plain).help("Quit Monitor")
         }
     }
-
-    private static let footerIcon: NSImage = {
-        let img = VacuumAsset.image.copy() as! NSImage
-        img.isTemplate = false
-        img.size = NSSize(width: 15, height: 15)
-        return img
-    }()
 
     // MARK: Helpers
 
