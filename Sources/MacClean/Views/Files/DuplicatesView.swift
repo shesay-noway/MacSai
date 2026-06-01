@@ -10,6 +10,8 @@ struct DuplicatesView: View {
     @State private var scanPhase = ""
     @State private var scanComplete = false
     @State private var completion: CleanSummary?
+    @State private var cleaning: CleaningEngine.Progress?
+    @State private var cleanTask: Task<Void, Never>?
     @State private var elapsedSeconds: Int = 0
 
     var body: some View {
@@ -27,7 +29,10 @@ struct DuplicatesView: View {
                     isScanning: false,
                     scanComplete: true,
                     completion: nil,
-                    onScan: scan, onClean: clean, onReset: reset
+                    cleaning: cleaning,
+                    onScan: scan, onClean: clean,
+                    onCancelClean: { cleanTask?.cancel() },
+                    onReset: reset
                 )
             } else if !results.isEmpty {
                 ModuleContainerView(
@@ -38,7 +43,10 @@ struct DuplicatesView: View {
                     selectedItems: $selectedItems,
                     isScanning: false,
                     completion: completion,
-                    onScan: scan, onClean: clean, onReset: reset
+                    cleaning: cleaning,
+                    onScan: scan, onClean: clean,
+                    onCancelClean: { cleanTask?.cancel() },
+                    onReset: reset
                 )
             } else if completion != nil {
                 ModuleContainerView(
@@ -49,7 +57,10 @@ struct DuplicatesView: View {
                     selectedItems: $selectedItems,
                     isScanning: false,
                     completion: completion,
-                    onScan: scan, onClean: clean, onReset: reset
+                    cleaning: cleaning,
+                    onScan: scan, onClean: clean,
+                    onCancelClean: { cleanTask?.cancel() },
+                    onReset: reset
                 )
             } else {
                 idleView
@@ -167,12 +178,20 @@ struct DuplicatesView: View {
 
     private func clean() {
         let preCleanSelectedCount = selectedItems.count
-        Task {
+        cleaning = CleaningEngine.Progress(
+            totalItems: preCleanSelectedCount,
+            processedItems: 0, removedSoFar: 0, freedBytesSoFar: 0
+        )
+        cleanTask = Task {
             let result = await CleanActions.executeUserClean(
                 results: results,
                 selectedItems: selectedItems,
-                engine: appState.cleaningEngine
+                engine: appState.cleaningEngine,
+                onProgress: { progress in
+                    Task { @MainActor in cleaning = progress }
+                }
             )
+            cleaning = nil
             completion = CleanSummary(
                 selectedCount: preCleanSelectedCount,
                 removedCount: result.removedCount,
@@ -184,6 +203,8 @@ struct DuplicatesView: View {
     }
 
     private func reset() {
-        results = []; selectedItems = []; completion = nil; scanComplete = false; elapsedSeconds = 0
+        results = []; selectedItems = []
+        completion = nil; cleaning = nil; cleanTask = nil
+        scanComplete = false; elapsedSeconds = 0
     }
 }

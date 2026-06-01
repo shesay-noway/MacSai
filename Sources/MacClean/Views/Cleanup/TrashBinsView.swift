@@ -8,6 +8,8 @@ struct TrashBinsView: View {
     @State private var isScanning = false
     @State private var scanComplete = false
     @State private var completion: CleanSummary?
+    @State private var cleaning: CleaningEngine.Progress?
+    @State private var cleanTask: Task<Void, Never>?
 
     private let module = TrashBinsModule()
 
@@ -24,8 +26,10 @@ struct TrashBinsView: View {
             scanPhase: scanPhase,
             scanComplete: scanComplete,
             completion: completion,
+            cleaning: cleaning,
             onScan: scan,
             onClean: clean,
+            onCancelClean: { cleanTask?.cancel() },
             onReset: reset
         )
     }
@@ -69,12 +73,20 @@ struct TrashBinsView: View {
 
     private func clean() {
         let preCleanSelectedCount = selectedItems.count
-        Task {
+        cleaning = CleaningEngine.Progress(
+            totalItems: preCleanSelectedCount,
+            processedItems: 0, removedSoFar: 0, freedBytesSoFar: 0
+        )
+        cleanTask = Task {
             let result = await CleanActions.executeUserClean(
                 results: results,
                 selectedItems: selectedItems,
-                engine: appState.cleaningEngine
+                engine: appState.cleaningEngine,
+                onProgress: { progress in
+                    Task { @MainActor in cleaning = progress }
+                }
             )
+            cleaning = nil
             completion = CleanSummary(
                 selectedCount: preCleanSelectedCount,
                 removedCount: result.removedCount,
@@ -86,6 +98,6 @@ struct TrashBinsView: View {
     }
 
     private func reset() {
-        results = []; selectedItems = []; completion = nil; scanComplete = false
+        results = []; selectedItems = []; completion = nil; cleaning = nil; cleanTask = nil; scanComplete = false
     }
 }

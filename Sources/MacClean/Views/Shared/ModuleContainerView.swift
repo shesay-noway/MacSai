@@ -16,8 +16,14 @@ struct ModuleContainerView: View {
     /// three honest end-states (nothing selected / everything errored /
     /// happy path) instead of an ambiguous "0 bytes cleaned up".
     let completion: CleanSummary?
+    /// Non-nil while a clean is in flight. The container renders a
+    /// progress ring + cancel button instead of the results list during
+    /// this window. nil means "no clean in flight" — either before any
+    /// clean or after one finishes (then `completion` takes over).
+    let cleaning: CleaningEngine.Progress?
     let onScan: () -> Void
     let onClean: () -> Void
+    let onCancelClean: (() -> Void)?
     let onReset: () -> Void
 
     init(
@@ -32,8 +38,10 @@ struct ModuleContainerView: View {
         scanPhase: String = "Scanning...",
         scanComplete: Bool = false,
         completion: CleanSummary? = nil,
+        cleaning: CleaningEngine.Progress? = nil,
         onScan: @escaping () -> Void,
         onClean: @escaping () -> Void,
+        onCancelClean: (() -> Void)? = nil,
         onReset: @escaping () -> Void
     ) {
         self.title = title
@@ -47,10 +55,14 @@ struct ModuleContainerView: View {
         self.scanPhase = scanPhase
         self.scanComplete = scanComplete
         self.completion = completion
+        self.cleaning = cleaning
         self.onScan = onScan
         self.onClean = onClean
+        self.onCancelClean = onCancelClean
         self.onReset = onReset
     }
+
+    @State private var showLargeSelectionConfirm = false
 
     private var totalSelected: UInt64 {
         results.flatMap(\.items)
@@ -62,10 +74,16 @@ struct ModuleContainerView: View {
         selectedItems.count
     }
 
+    private var formattedSelectedSize: String {
+        ByteCountFormatter.string(fromByteCount: Int64(totalSelected), countStyle: .file)
+    }
+
     var body: some View {
         Group {
             if let completion {
                 doneView(summary: completion)
+            } else if let cleaning {
+                cleaningView(progress: cleaning)
             } else if !results.isEmpty {
                 resultsView
             } else if isScanning {
@@ -77,6 +95,31 @@ struct ModuleContainerView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func cleaningView(progress: CleaningEngine.Progress) -> some View {
+        VStack(spacing: 24) {
+            Spacer()
+            ScanProgressRing(
+                progress: progress.fraction,
+                phase: progress.totalItems > 0
+                    ? "Cleaning… \(Int((progress.fraction * 100).rounded()))%"
+                    : "Starting cleanup...",
+                theme: theme
+            )
+            if progress.totalItems > 0 {
+                Text("\(progress.processedItems.formatted()) of \(progress.totalItems.formatted()) items")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.65))
+            }
+            if let onCancelClean {
+                Button("Cancel") { onCancelClean() }
+                    .buttonStyle(.bordered)
+                    .tint(.white)
+                    .controlSize(.large)
+            }
+            Spacer()
+        }
     }
 
     private var idleView: some View {
@@ -131,7 +174,13 @@ struct ModuleContainerView: View {
                 SizeDisplay(size: totalSelected, label: "selected")
                     .foregroundStyle(.white)
                 Spacer()
-                Button("Clean") { onClean() }
+                Button("Clean") {
+                    if selectedCount > MCConstants.cleanConfirmationThreshold {
+                        showLargeSelectionConfirm = true
+                    } else {
+                        onClean()
+                    }
+                }
                     .buttonStyle(SuperEllipseButtonStyle(
                         gradient: theme.buttonGradient,
                         size: CGSize(width: 110, height: 40)
@@ -144,6 +193,15 @@ struct ModuleContainerView: View {
                     .help(selectedCount == 0
                           ? "Check at least one item to clean"
                           : "Move \(selectedCount) item(s) to Trash")
+                    .alert(
+                        "Clean \(selectedCount.formatted()) items?",
+                        isPresented: $showLargeSelectionConfirm
+                    ) {
+                        Button("Cancel", role: .cancel) { }
+                        Button("Continue", role: .destructive) { onClean() }
+                    } message: {
+                        Text("That's about \(formattedSelectedSize) of data and may take several minutes. You can cancel mid-cleanup.")
+                    }
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 14)

@@ -4,6 +4,7 @@ import MacCleanKit
 struct SystemJunkView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = SystemJunkViewModel()
+    @State private var showLargeSelectionConfirm = false
 
     var body: some View {
         Group {
@@ -16,8 +17,8 @@ struct SystemJunkView: View {
                 resultsView
             case .empty:
                 emptyView
-            case .cleaning:
-                cleaningView
+            case .cleaning(let progress):
+                cleaningView(progress: progress)
             case .done(let summary):
                 doneView(summary: summary)
             }
@@ -81,7 +82,11 @@ struct SystemJunkView: View {
                         .foregroundStyle(.white.opacity(0.6))
 
                     Button("Clean") {
-                        viewModel.startCleaning(engine: appState.cleaningEngine)
+                        if viewModel.selectedCount > MCConstants.cleanConfirmationThreshold {
+                            showLargeSelectionConfirm = true
+                        } else {
+                            viewModel.startCleaning(engine: appState.cleaningEngine)
+                        }
                     }
                     .buttonStyle(SuperEllipseButtonStyle(
                         gradient: ModuleTheme.cleanup.buttonGradient,
@@ -95,6 +100,17 @@ struct SystemJunkView: View {
                     .help(viewModel.selectedCount == 0
                           ? "Check at least one item to clean"
                           : "Move \(viewModel.selectedCount) item(s) to Trash")
+                    .alert(
+                        "Clean \(viewModel.selectedCount.formatted()) items?",
+                        isPresented: $showLargeSelectionConfirm
+                    ) {
+                        Button("Cancel", role: .cancel) { }
+                        Button("Continue", role: .destructive) {
+                            viewModel.startCleaning(engine: appState.cleaningEngine)
+                        }
+                    } message: {
+                        Text("That's about \(ByteCountFormatter.string(fromByteCount: Int64(viewModel.totalSelectedSize), countStyle: .file)) of data and may take several minutes. You can cancel mid-cleanup.")
+                    }
                 }
             }
             .padding(.horizontal, 24)
@@ -131,12 +147,42 @@ struct SystemJunkView: View {
         }
     }
 
-    private var cleaningView: some View {
-        VStack(spacing: 0) {
+    private func cleaningView(progress: CleaningEngine.Progress?) -> some View {
+        VStack(spacing: 24) {
             Spacer()
-            ScanProgressRing(progress: 0.5, phase: "Cleaning...", theme: .cleanup)
+
+            // Determinate progress when the engine has emitted at least one
+            // snapshot; indeterminate spinner before the first chunk lands.
+            ScanProgressRing(
+                progress: progress?.fraction ?? 0.0,
+                phase: cleaningPhaseText(progress),
+                theme: .cleanup
+            )
+
+            if let progress {
+                Text("\(progress.processedItems.formatted()) of \(progress.totalItems.formatted()) items")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.65))
+            }
+
+            // Cancel button — engine honors Task.isCancelled at chunk
+            // boundaries, so a cancel halts the operation and produces a
+            // partial CleanResult (which the .done state shows honestly).
+            Button("Cancel") { viewModel.cancelCleaning() }
+                .buttonStyle(.bordered)
+                .tint(.white)
+                .controlSize(.large)
+
             Spacer()
         }
+    }
+
+    private func cleaningPhaseText(_ progress: CleaningEngine.Progress?) -> String {
+        guard let progress, progress.totalItems > 0 else {
+            return "Starting cleanup..."
+        }
+        let pct = Int((progress.fraction * 100).rounded())
+        return "Cleaning… \(pct)%"
     }
 
     private func doneView(summary: CleanSummary) -> some View {

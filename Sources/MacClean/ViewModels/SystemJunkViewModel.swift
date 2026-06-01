@@ -8,7 +8,7 @@ final class SystemJunkViewModel {
         case scanning(progress: Double)
         case results
         case empty
-        case cleaning
+        case cleaning(progress: CleaningEngine.Progress?)
         case done(summary: CleanSummary)
     }
 
@@ -17,6 +17,8 @@ final class SystemJunkViewModel {
     var selectedItems: Set<URL> = []
     var filesFound: Int = 0
     var scanPhase: String = "Scanning..."
+    /// Held so the View's Cancel button can stop an in-flight cleanup.
+    private var cleanTask: Task<Void, Never>?
 
     private let module = SystemJunkModule()
 
@@ -92,16 +94,27 @@ final class SystemJunkViewModel {
     }
 
     func startCleaning(engine: CleaningEngine) {
-        state = .cleaning
+        state = .cleaning(progress: nil)
         let preCleanSelectedCount = selectedItems.count
 
-        Task {
+        cleanTask = Task { [weak self] in
+            // Onprogress is invoked from the engine actor; hop to main
+            // before touching @Observable view state.
             let result = await CleanActions.executeUserClean(
-                results: results,
-                selectedItems: selectedItems,
-                engine: engine
+                results: self?.results ?? [],
+                selectedItems: self?.selectedItems ?? [],
+                engine: engine,
+                onProgress: { [weak self] progress in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        if case .cleaning = self.state {
+                            self.state = .cleaning(progress: progress)
+                        }
+                    }
+                }
             )
-            state = .done(summary: CleanSummary(
+            guard let self else { return }
+            self.state = .done(summary: CleanSummary(
                 selectedCount: preCleanSelectedCount,
                 removedCount: result.removedCount,
                 freedBytes: result.freedBytes,
@@ -111,10 +124,20 @@ final class SystemJunkViewModel {
         }
     }
 
+    /// User clicked Cancel during a long cleanup. The engine honors
+    /// Task.isCancelled at chunk boundaries, so the operation will halt
+    /// and produce a partial CleanResult; the .done state shows the
+    /// partial summary so the user sees what was cleaned before the
+    /// cancellation.
+    func cancelCleaning() {
+        cleanTask?.cancel()
+    }
+
     func reset() {
         state = .idle
         results = []
         selectedItems = []
         filesFound = 0
+        cleanTask = nil
     }
 }
