@@ -5,7 +5,26 @@ public enum MCConstants {
     public static let bundleIdentifier = "com.macclean.app"
     public static let helperBundleIdentifier = "com.macclean.helper"
     public static let menuBundleIdentifier = "com.macclean.menu"
+    /// Per-CHUNK safety net enforced by SafetyGuard.validateDeletion.
+    /// CleaningEngine internally chunks large selections into batches
+    /// no larger than `cleanChunkSize` (5,000), so this cap is effectively
+    /// a defense-in-depth boundary in case a future refactor accidentally
+    /// bypasses the chunking. Total selection size is bounded by
+    /// `maxTotalItemsPerCleanOperation` instead.
     public static let maxFilesPerOperation = 10_000
+
+    /// CleaningEngine breaks large selections into chunks of this size so
+    /// per-chunk SafetyGuard validation never trips on legitimate-but-large
+    /// cleanups (Chrome cache alone often has 20k+ entries). 5k leaves
+    /// 50% headroom under `maxFilesPerOperation`.
+    public static let cleanChunkSize = 5_000
+
+    /// Hard upper bound on a single Clean operation, regardless of
+    /// chunking. Catches genuinely pathological scan results (e.g., a
+    /// buggy module returning every file on disk) while leaving plenty
+    /// of room for real cache cleanups. Set well above the largest
+    /// legitimate selection observed in the wild (~200k).
+    public static let maxTotalItemsPerCleanOperation = 500_000
     public static let scanThrottleInterval: TimeInterval = 0.05 // 50ms UI update throttle
 
     // MARK: - Protected Paths (never touch these)

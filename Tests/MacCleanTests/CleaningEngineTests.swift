@@ -146,20 +146,94 @@ final class CleaningEngineTests: XCTestCase {
         XCTAssertFalse(result.errors.isEmpty)
     }
 
-    func testTenThousandOnePathsAllRejected() async {
-        let items = (0..<10_001).map {
+    // MARK: - Spec: arbitrary-size selections must be processed
+    //
+    // Real users have caches with 50k-200k entries (Chrome alone, etc).
+    // The engine MUST process every item the user selected, not refuse the
+    // whole batch wholesale. Internal chunking keeps the per-chunk safety
+    // net at MCConstants.maxFilesPerOperation while letting total size be
+    // bounded only by maxTotalItemsPerCleanOperation.
+
+    /// SPEC: a 12,000-item selection (above the old 10k per-batch cap)
+    /// processes every item — no single batch-level rejection.
+    func testEngine_processesSelectionsAboveOldPerBatchCap() async {
+        let items = (0..<12_000).map {
             FileItem(
-                url: MCConstants.userCaches.appending(path: "f\($0)"),
+                url: MCConstants.userCaches.appending(path: "macclean-spec-large-batch-\($0)"),
                 name: "f\($0)",
+                size: 1,
+                allocatedSize: 1,
+                isDirectory: false
+            )
+        }
+        let result = await CleaningEngine().clean(items: items, mode: .dryRun)
+
+        // dryRun always reports success on items that pass per-item
+        // validation; user-cache paths are safe → all 12k should be
+        // "removed" (counted) in dryRun mode.
+        XCTAssertEqual(result.removedCount, 12_000,
+            "every item the user selected must be processed; old behavior " +
+            "rejected the whole batch when count > maxFilesPerOperation")
+        XCTAssertEqual(result.skippedCount, 0,
+            "no per-item validation failure expected for user-cache paths")
+    }
+
+    /// SPEC: a genuinely runaway selection (> maxTotalItemsPerCleanOperation)
+    /// is refused cleanly with a single, informative error message — not
+    /// a generic "validation failed" line. The UI surfaces this directly.
+    func testEngine_refusesGenuinelyRunawaySelections() async {
+        // Build just over the upper bound. Note: the spec is about
+        // BEHAVIOR (refuse + informative message), not the exact number.
+        let count = MCConstants.maxTotalItemsPerCleanOperation + 1
+        let items = (0..<count).map { i in
+            FileItem(
+                url: MCConstants.userCaches.appending(path: "runaway-\(i)"),
+                name: "f\(i)",
                 size: 0,
                 allocatedSize: 0,
                 isDirectory: false
             )
         }
         let result = await CleaningEngine().clean(items: items, mode: .dryRun)
+
         XCTAssertEqual(result.removedCount, 0,
-                       "Batch over file cap must be entirely rejected, not partially processed")
-        XCTAssertEqual(result.skippedCount, 10_001)
+                       "runaway batch must be refused entirely, not partially processed")
+        XCTAssertEqual(result.errors.count, 1,
+                       "exactly one user-facing error explaining the limit")
+        let msg = result.errors.first?.error ?? ""
+        XCTAssertTrue(
+            msg.contains("\(MCConstants.maxTotalItemsPerCleanOperation)") ||
+            msg.localizedCaseInsensitiveContains("too many") ||
+            msg.localizedCaseInsensitiveContains("limit"),
+            "error message must reference the limit so the UI can show it: got '\(msg)'"
+        )
+    }
+
+    /// SPEC: if the surrounding Task is cancelled mid-cleanup, the engine
+    /// stops at the next safe boundary and returns a partial result —
+    /// it doesn't hang or run to completion.
+    func testEngine_cancellationHaltsCleanly() async throws {
+        // Enough items that a few chunks have to run; cancellation should
+        // catch us between chunks.
+        let items = (0..<50_000).map {
+            FileItem(
+                url: MCConstants.userCaches.appending(path: "cancel-spec-\($0)"),
+                name: "f\($0)",
+                size: 1,
+                allocatedSize: 1,
+                isDirectory: false
+            )
+        }
+
+        let engine = CleaningEngine()
+        let task = Task { await engine.clean(items: items, mode: .dryRun) }
+        // Give the engine a head start, then cancel.
+        try await Task.sleep(for: .milliseconds(5))
+        task.cancel()
+        let result = await task.value
+
+        XCTAssertLessThan(result.removedCount, items.count,
+            "cancellation must stop processing before the whole selection is done")
     }
 
     // MARK: - Empty input
