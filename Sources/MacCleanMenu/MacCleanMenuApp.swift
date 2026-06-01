@@ -125,66 +125,72 @@ struct MenuContentView: View {
 
             Divider().opacity(0.25)
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 8) {
-                    if let stats {
+            // Cards stack — plain VStack, NO ScrollView. A ScrollView
+            // inside MenuBarExtra(.window) collapses to ~0 height when
+            // given only a maxHeight constraint because the popover
+            // sizes to the ScrollView's idealSize (which is 0 for a
+            // ScrollView — it's expected to scroll). Same bug bit us
+            // twice now: cards just disappear. If a power user ever
+            // overflows the screen height, wrap THIS VStack in a
+            // ScrollView with explicit width AND height (not just
+            // maxHeight).
+            VStack(spacing: 8) {
+                if let stats {
+                    statCard(
+                        icon: "cpu",
+                        tint: .blue,
+                        title: "CPU",
+                        value: String(format: "%.1f%%", stats.cpuUsage * 100),
+                        progress: stats.cpuUsage,
+                        barColor: barColor(stats.cpuUsage)
+                    )
+                    statCard(
+                        icon: "memorychip",
+                        tint: .purple,
+                        title: "Memory",
+                        value: "\(FileSizeFormatter.format(stats.memoryUsed)) · \(FileSizeFormatter.format(stats.memoryTotal))",
+                        progress: stats.memoryPressure,
+                        barColor: barColor(stats.memoryPressure)
+                    )
+                    let diskUsage = stats.diskTotal > 0
+                        ? Double(stats.diskTotal - stats.diskFree) / Double(stats.diskTotal)
+                        : 0
+                    statCard(
+                        icon: "internaldrive",
+                        tint: .orange,
+                        title: "Disk",
+                        value: "\(FileSizeFormatter.format(stats.diskFree)) free",
+                        progress: diskUsage,
+                        barColor: barColor(diskUsage)
+                    )
+                    if let level = stats.batteryLevel {
                         statCard(
-                            icon: "cpu",
-                            tint: .blue,
-                            title: "CPU",
-                            value: String(format: "%.1f%%", stats.cpuUsage * 100),
-                            progress: stats.cpuUsage,
-                            barColor: barColor(stats.cpuUsage)
+                            icon: stats.batteryIsCharging ? "battery.100.bolt" : "battery.75",
+                            tint: stats.batteryIsCharging ? .yellow : .green,
+                            title: "Battery" + (stats.batteryIsCharging ? " · Charging" : ""),
+                            value: String(format: "%.0f%%", level * 100),
+                            progress: level,
+                            barColor: level > 0.2 ? .green : .red
                         )
-                        statCard(
-                            icon: "memorychip",
-                            tint: .purple,
-                            title: "Memory",
-                            value: "\(FileSizeFormatter.format(stats.memoryUsed)) · \(FileSizeFormatter.format(stats.memoryTotal))",
-                            progress: stats.memoryPressure,
-                            barColor: barColor(stats.memoryPressure)
-                        )
-                        let diskUsage = stats.diskTotal > 0
-                            ? Double(stats.diskTotal - stats.diskFree) / Double(stats.diskTotal)
-                            : 0
-                        statCard(
-                            icon: "internaldrive",
-                            tint: .orange,
-                            title: "Disk",
-                            value: "\(FileSizeFormatter.format(stats.diskFree)) free",
-                            progress: diskUsage,
-                            barColor: barColor(diskUsage)
-                        )
-                        if let level = stats.batteryLevel {
-                            statCard(
-                                icon: stats.batteryIsCharging ? "battery.100.bolt" : "battery.75",
-                                tint: stats.batteryIsCharging ? .yellow : .green,
-                                title: "Battery" + (stats.batteryIsCharging ? " · Charging" : ""),
-                                value: String(format: "%.0f%%", level * 100),
-                                progress: level,
-                                barColor: level > 0.2 ? .green : .red
-                            )
-                        }
-
-                        infoStrip(stats: stats)
-
-                        if !tips.isEmpty {
-                            tipsCard
-                        }
-                        if let p = protection {
-                            protectionCard(p)
-                        }
-                        if let d = devices, d.hasAny {
-                            devicesCard(d)
-                        }
-                    } else {
-                        loadingPlaceholder
                     }
+
+                    infoStrip(stats: stats)
+
+                    if !tips.isEmpty {
+                        tipsCard
+                    }
+                    if let p = protection {
+                        protectionCard(p)
+                    }
+                    if let d = devices, d.hasAny {
+                        devicesCard(d)
+                    }
+                } else {
+                    loadingPlaceholder
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
             }
-            .frame(maxHeight: 520)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
 
             Divider().opacity(0.25)
 
