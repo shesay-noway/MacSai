@@ -121,8 +121,6 @@ public enum SidebarSection: String, CaseIterable, Identifiable {
 
 public struct SidebarView: View {
     @Binding var selection: SidebarItem?
-    @AppStorage("showMenuBarWidget") private var showMenuBarWidget = true
-    @State private var launcher = MenuBarLauncher.shared
     /// Sections the user has collapsed. Native `.sidebar` Sections only reveal
     /// a collapse chevron on hover and don't fold on a title click, so we render
     /// our own header rows with an always-visible chevron that fold on tap.
@@ -154,7 +152,7 @@ public struct SidebarView: View {
 
             Divider().opacity(0.4)
 
-            menuBarFooter
+            settingsFooter
         }
         .frame(minWidth: 180, idealWidth: 200)
     }
@@ -186,35 +184,32 @@ public struct SidebarView: View {
         .listRowSeparator(.hidden)
     }
 
-    /// Always-visible footer at the bottom of the sidebar with the
-    /// menu bar widget toggle. ⌘, Settings has the same control plus
-    /// a status diagnostic row; this one is the discoverable entry
-    /// point for users who haven't learned the keyboard shortcut.
-    private var menuBarFooter: some View {
-        HStack(spacing: 8) {
-            Image(systemName: showMenuBarWidget
-                  ? "menubar.dock.rectangle.badge.record"
-                  : "menubar.dock.rectangle")
-                .foregroundStyle(showMenuBarWidget ? .green : .secondary)
-                .font(.system(size: 14))
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Menu Bar Widget")
-                    .font(.system(size: 11, weight: .medium))
-                Text(showMenuBarWidget ? "Running" : "Off")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
+    /// Pinned footer: opens the in-app Settings page. Replaced the old
+    /// Menu Bar Widget toggle row; that toggle now lives inside Settings.
+    private var settingsFooter: some View {
+        Button {
+            selection = .settings
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 13))
+                    .foregroundStyle(selection == .settings ? Color.accentColor : Color.secondary)
+                Text("Settings")
+                    .font(.system(size: 13, weight: .medium))
+                Spacer()
             }
-            Spacer()
-            Toggle("", isOn: $showMenuBarWidget)
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .labelsHidden()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .onChange(of: showMenuBarWidget) { _, newValue in
-            launcher.setEnabled(newValue)
-        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(selection == .settings ? Color.primary.opacity(0.10) : Color.clear)
+        )
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .accessibilityLabel("Settings")
     }
 
     private func sidebarRow(_ item: SidebarItem) -> some View {
