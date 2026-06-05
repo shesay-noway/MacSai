@@ -172,6 +172,7 @@ struct SettingsPageView: View {
                     .labelsHidden()
                     .disabled(loginLauncher.isBusy)
             }
+            .animation(.easeInOut(duration: 0.18), value: loginLauncher.isBusy)
             .onChange(of: launchAtLogin) { _, newValue in
                 Task { await loginLauncher.setEnabled(newValue) }
             }
@@ -203,6 +204,7 @@ struct SettingsPageView: View {
                     .labelsHidden()
                     .disabled(launcher.isBusy)
             }
+            .animation(.easeInOut(duration: 0.18), value: launcher.isBusy)
             .onChange(of: showMenuBarWidget) { _, newValue in
                 Task { await launcher.setEnabled(newValue) }
             }

@@ -100,8 +100,15 @@ public final class MenuBarLauncher {
     /// but won't kick it off in the current session. We want the
     /// widget visible the moment the toggle flips, so we kick it
     /// directly via NSWorkspace. Idempotent: skips if already running.
+    /// Minimum time `isBusy` stays true. The XPC round-trip often finishes
+    /// in tens of ms; a spinner that flashes in and out for one frame reads
+    /// as a glitch, not feedback. Holding it for a beat makes the toggle
+    /// feel deliberate.
+    static let minimumBusyDuration: Duration = .milliseconds(450)
+
     public func setEnabled(_ enabled: Bool) async {
         isBusy = true
+        let started = ContinuousClock.now
         defer { isBusy = false }
         // register()/unregister() block on an XPC round-trip to
         // backgroundtaskmanagementd (the visible "toggle lag"), so they run
@@ -125,6 +132,12 @@ public final class MenuBarLauncher {
             terminateRunningHelper()
         }
         statusSnapshot = service.status
+        // Pad sub-minimum operations so the spinner doesn't flash for a
+        // single frame (see minimumBusyDuration).
+        let elapsed = ContinuousClock.now - started
+        if elapsed < Self.minimumBusyDuration {
+            try? await Task.sleep(for: Self.minimumBusyDuration - elapsed)
+        }
     }
 
     /// Path to the bundled `MacCleanMenu.app` helper. Returns `nil`
