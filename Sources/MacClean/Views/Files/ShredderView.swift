@@ -74,6 +74,11 @@ struct ShredderView: View {
                         Text("Secure Erase").tag(SecureEraser.EraseMode.secure)
                     }
                     .pickerStyle(.segmented)
+                    // Hidden visually, kept for VoiceOver. Rendered inline,
+                    // the label gets width-starved by the fixed 360pt frame
+                    // (segments consume it all) and wraps one letter per
+                    // line into a vertical "M o d e".
+                    .labelsHidden()
                     .frame(width: 360)
                     .padding(.top, 8)
                 }
