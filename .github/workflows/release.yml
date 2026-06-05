@@ -45,6 +45,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Cache the SwiftPM .build dir so dependency compiles (GRDB, etc.) are
+      # reused across releases. Keyed on Package.resolved; restore-keys give
+      # partial reuse so only changed sources recompile.
+      - name: Cache SwiftPM .build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
       - name: Build release binary
         run: swift build -c release
 

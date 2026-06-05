@@ -202,46 +202,34 @@ fi
 # Verify signature
 codesign --verify --verbose=1 "${APP_BUNDLE}" 2>&1 | head -3
 
-# Step 4.5: Notarize and STAPLE THE APP ITSELF (before packaging), so the app a
-# user drags out of the DMG launches even offline. Stapling the DMG alone leaves
-# the contained app relying on an online Gatekeeper check on first launch.
-if [[ "$NOTARIZE" == "true" ]]; then
-    echo "[5/7] Notarizing app bundle..."
-    APP_ZIP="${DMG_DIR}/app-for-notary.zip"
-    /usr/bin/ditto -c -k --keepParent "${APP_BUNDLE}" "${APP_ZIP}"
-    xcrun notarytool submit "${APP_ZIP}" \
-        --keychain-profile "${NOTARY_PROFILE}" \
-        --wait
-    xcrun stapler staple "${APP_BUNDLE}"
-    xcrun stapler validate "${APP_BUNDLE}"
-    rm -f "${APP_ZIP}"
-    echo "  → App notarized and stapled"
-fi
-
-# Step 5: Create DMG (from the now-stapled app)
-echo "[6/7] Creating DMG..."
+# Step 5: Create DMG
+echo "[5/6] Creating DMG..."
 hdiutil create -volname "${APP_NAME}" \
     -srcfolder "${DMG_DIR}" \
     -ov -format UDZO \
     ".build/${DMG_NAME}" > /dev/null
 
-# Sign the DMG too
+# Sign the DMG
 if [[ "$NOTARIZE" == "true" ]]; then
     codesign --force --sign "$SIGNING_IDENTITY" --timestamp ".build/${DMG_NAME}"
     echo "  → DMG signed with Developer ID"
 fi
 
-# Step 6: Notarize + staple the DMG as well
+# Step 6: Notarize + staple the DMG ONLY. Notarizing the DMG also notarizes the
+# app inside it (Apple scans the contents), so one submission covers both. We do
+# not separately notarize the app: that doubled the Apple round-trips and was the
+# step that hung for ~1h. The copied-out app launches via a quick online
+# Gatekeeper check on first run, which is fine for Homebrew/DMG installs.
 if [[ "$NOTARIZE" == "true" ]]; then
-    echo "[7/7] Notarizing DMG..."
+    echo "[6/6] Notarizing DMG..."
     xcrun notarytool submit ".build/${DMG_NAME}" \
         --keychain-profile "${NOTARY_PROFILE}" \
         --wait
     xcrun stapler staple ".build/${DMG_NAME}"
     xcrun stapler validate ".build/${DMG_NAME}"
-    echo "  → Notarization complete (app + DMG stapled)"
+    echo "  → Notarization complete (DMG stapled; app inside notarized)"
 else
-    echo "[7/7] Skipping notarization (no --notarize flag)"
+    echo "[6/6] Skipping notarization (no --notarize flag)"
 fi
 
 # Compute SHA256 for Homebrew Cask
