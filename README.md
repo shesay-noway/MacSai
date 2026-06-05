@@ -1,26 +1,37 @@
 <p align="center">
-  <img src="assets/app_icon.png" width="150" alt="Mac Clean Icon" />
+  <img src="assets/app_icon.png" width="150" alt="Mac Sai Icon" />
 </p>
 
-<h1 align="center">Mac Clean</h1>
+<h1 align="center">Mac Sai</h1>
 
 <p align="center">
   <strong>The open-source Mac cleaner, optimizer, and malware scanner.</strong><br>
   A feature-complete, free alternative to CleanMyMac — built with Swift 6 and SwiftUI.
 </p>
 
+<!-- TEMPORARY rename notice: remove once the new name has settled (target: 2026-09). -->
+> [!IMPORTANT]
+> **Mac Clean is now Mac Sai.** Same app and same team, renamed for trademark reasons. Existing GitHub links redirect automatically, and this notice is temporary.
+>
+> Installed it through Homebrew under the old name? Switch with:
+> ```bash
+> brew uninstall --cask mac-clean && brew untap iliyami/macclean
+> brew tap iliyami/macsai && brew install --cask mac-sai
+> ```
+
 <p align="center">
-  <a href="https://github.com/iliyami/MacClean/stargazers"><img src="https://img.shields.io/github/stars/iliyami/MacClean?style=flat-square&color=gold" alt="GitHub stars" /></a>
+  <a href="https://github.com/iliyami/MacSai/stargazers"><img src="https://img.shields.io/github/stars/iliyami/MacSai?style=flat-square&color=gold" alt="GitHub stars" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%2014%2B-blue?style=flat-square" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/swift-6.0-orange?style=flat-square" alt="Swift 6" />
-  <img src="https://img.shields.io/badge/tests-485%20passing-brightgreen?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/tests-486%20passing-brightgreen?style=flat-square" alt="Tests" />
   <img src="https://img.shields.io/badge/license-BSD--3--Clause-green?style=flat-square" alt="License" />
   <img src="https://img.shields.io/badge/security-audited-purple?style=flat-square" alt="Security" />
+  <img src="https://img.shields.io/badge/Apple-notarized-black?style=flat-square&logo=apple" alt="Notarized" />
   <img src="https://img.shields.io/badge/PRs-welcome-ff69b4?style=flat-square" alt="PRs Welcome" />
 </p>
 
 <p align="center">
-  <img src="assets/demo.png" width="700" alt="Mac Clean Screenshot" />
+  <img src="assets/demo.png" width="700" alt="Mac Sai Screenshot" />
 </p>
 
 <p align="center">
@@ -28,24 +39,24 @@
 </p>
 
 ```bash
-brew tap iliyami/macclean && brew install --cask mac-clean
+brew tap iliyami/macsai && brew install --cask mac-sai
 ```
 
 <p align="center">
-  Or grab the <a href="https://github.com/iliyami/MacClean/releases/latest">latest DMG</a> from Releases.
+  Or grab the <a href="https://github.com/iliyami/MacSai/releases/latest">latest DMG</a> from Releases.
 </p>
 
 ---
 
-## What is Mac Clean?
+## What is Mac Sai?
 
-Mac Clean is a **free, open-source** macOS app that cleans junk files, removes malware, optimizes performance, uninstalls apps completely, and visualizes disk usage — all from a single, beautiful interface. It replicates every major feature of CleanMyMac while being fully transparent and community-driven.
+Mac Sai is a **free, open-source** macOS app that cleans junk files, removes malware, optimizes performance, uninstalls apps completely, and visualizes disk usage — all from a single, beautiful interface. It replicates every major feature of CleanMyMac while being fully transparent and community-driven.
 
 **No subscriptions. No telemetry. No ads. Just a clean Mac.**
 
-## How Mac Clean compares
+## How Mac Sai compares
 
-|  | Mac Clean | CleanMyMac | Pearcleaner | PureMac | OnyX | Mole |
+|  | Mac Sai | CleanMyMac | Pearcleaner | PureMac | OnyX | Mole |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Price** | Free | $39.95/yr | Free | Free | Free | Free (CLI) |
 | **Open source** | ✅ BSD-3 | ❌ | ✅ Fair-code | ✅ MIT | ❌ | ✅ MIT |
@@ -62,10 +73,10 @@ Mac Clean is a **free, open-source** macOS app that cleans junk files, removes m
 | **Menu bar system monitor** | ✅ | ✅ Menu | ❌ | ❌ | ❌ | ❌ |
 | **Maintenance scripts** | ✅ | ✅ | ❌ | ❌ | ✅ Strong | ➖ |
 | **In-app activity log viewer** | ✅ | ❌ | ❌ | ❌ | ❌ | N/A CLI |
-| **Notarized by Apple** | ❌ | ✅ | ✅ | ✅ | ✅ | N/A |
+| **Notarized by Apple** | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
 | **macOS version** | 14+ | 13+ | 13+ | 13+ | varies | varies |
 
-> CleanMyMac is a great product — they deserve the revenue from users who want a polished, supported experience. Mac Clean is for everyone who'd rather have transparent source code and zero subscription.
+> CleanMyMac is a great product — they deserve the revenue from users who want a polished, supported experience. Mac Sai is for everyone who'd rather have transparent source code and zero subscription.
 
 ## Features
 
@@ -106,7 +117,7 @@ Mac Clean is a **free, open-source** macOS app that cleans junk files, removes m
 ### Menu Bar Widget
 
 <p align="center">
-  <img src="assets/menu_bar.png" width="300" alt="Mac Clean menu bar widget" />
+  <img src="assets/menu_bar.png" width="300" alt="Mac Sai menu bar widget" />
 </p>
 
 A glassmorphism menu bar widget that puts your Mac's vitals one click away — an independent process that launches at login and is toggled from the app's sidebar. No need to open the main window just to check in.
@@ -117,12 +128,12 @@ A glassmorphism menu bar widget that puts your Mac's vitals one click away — a
 - **Protection status** — last malware-scan time and threat count, color-coded by freshness
 - **Connected devices** — external volumes (with free space) and external displays at a glance
 - **Health alerts** — background notifications when disk runs critically low or memory pressure stays high (throttled, opt-in)
-- **One click to the app** — jump straight into Mac Clean
+- **One click to the app** — jump straight into Mac Sai
 
 ## Architecture
 
 ```
-Mac Clean
+Mac Sai
 ├── MacClean          — Main SwiftUI app (14 modules, 15 views)
 ├── MacCleanKit       — Shared framework (models, constants, protocols)
 ├── MacCleanHelper    — XPC privileged helper (LaunchDaemon for root ops)
@@ -144,7 +155,7 @@ Mac Clean
 
 ### Safety Model
 
-Mac Clean is designed to **never cause data loss**:
+Mac Sai is designed to **never cause data loss**:
 
 - **Protected paths blocklist** — `/System`, `/usr`, `/bin`, `/sbin`, Apple system apps are untouchable
 - **macOS firmlink canonicalization** — `/var`↔`/private/var`, `/tmp`↔`/private/tmp`, `/etc`↔`/private/etc` resolved to a single canonical form so symlink-redirect detection doesn't false-positive on legitimate system paths
@@ -163,36 +174,32 @@ Mac Clean is designed to **never cause data loss**:
 ### Homebrew (recommended — one command, no warnings)
 
 ```bash
-brew tap iliyami/macclean
-brew install --cask mac-clean
+brew tap iliyami/macsai
+brew install --cask mac-sai
 ```
 
-The Cask automatically handles Gatekeeper for you. Launch from Spotlight or Applications — no warnings, no right-clicks, no commands.
+Mac Sai is notarized by Apple, so it launches from Spotlight or Applications with no warnings, no right-clicks, and no commands.
 
 ### One-line installer
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iliyami/MacClean/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/iliyami/MacSai/main/scripts/install.sh | bash
 ```
 
-This downloads the latest DMG, installs the app to `/Applications`, and removes the quarantine flag automatically.
+This downloads the latest DMG and installs the app to `/Applications`.
 
 ### DMG download
 
-Download the latest DMG from [Releases](https://github.com/iliyami/MacClean/releases/latest) and drag Mac Clean to your Applications folder. On first launch, either right-click the app and choose **Open**, or run once:
-
-```bash
-sudo xattr -dr com.apple.quarantine "/Applications/Mac Clean.app"
-```
+Download the latest DMG from [Releases](https://github.com/iliyami/MacSai/releases/latest) and drag Mac Sai to your Applications folder. Mac Sai is notarized by Apple, so it launches normally with no Gatekeeper warning and no extra commands.
 
 ### Build from source
 
 ```bash
-git clone https://github.com/iliyami/MacClean.git
+git clone https://github.com/iliyami/MacSai.git
 cd MacClean
 swift build
-swift test                     # run 485 tests
-bash scripts/build-dmg.sh      # build local DMG
+swift test                     # run 486 tests
+bash scripts/build-dmg.sh      # build local DMG (unsigned)
 ```
 
 ### Granting Full Disk Access
@@ -200,28 +207,23 @@ bash scripts/build-dmg.sh      # build local DMG
 Some modules (Mail Attachments, Privacy, Malware) need Full Disk Access to scan protected areas:
 
 1. Open **System Settings → Privacy & Security → Full Disk Access**
-2. Click **+** and add **Mac Clean.app** from Applications
-3. Restart Mac Clean
+2. Click **+** and add **Mac Sai.app** from Applications
+3. Restart Mac Sai
 
-## Why Mac Clean isn't notarized by Apple
+## Signed & notarized: why you can trust it
 
-Apple charges **$99/year** for a Developer ID — the only way to bypass Gatekeeper warnings on macOS. Mac Clean is free, open-source, and built by volunteers. Paying Apple's annual gatekeeping tax just so users can open the app without a warning isn't worth it when:
+Mac Sai is code-signed with an Apple **Developer ID** and **notarized by Apple**. That matters more for a cleaning app than for almost anything else you install, because you are about to give it deep access to your files. You deserve to know that what runs on your Mac is genuinely ours and has not been tampered with.
 
-1. The source is right here for you to read
-2. Homebrew install handles it automatically: `brew tap iliyami/macclean && brew install --cask mac-clean` and you're done
-3. The one-line installer handles it automatically
-4. The whole "Gatekeeper warning" thing is just an extra `xattr` command for direct DMG installs
+Here is what that gives you, enforced by your own Mac and not just promised by us:
 
-If our community ever wants to fund a Developer ID (or some other open-source organization wants to sponsor one), we'll happily ship notarized builds. Until then, **no paywall just to launch a free app**.
+- **Apple has scanned it.** Every release is submitted to Apple and checked for malware before it ships. Notarization is Apple vouching that this exact build came back clean.
+- **It cannot be tampered with.** The signature is a cryptographic seal over every file in the app. If a single byte changes after we sign it, whether from a corrupted download, a network attacker, or malware trying to ride on our name, macOS refuses to open it.
+- **It is provably from us.** The signature is tied to our Apple Developer identity, so no one else can ship something your Mac will accept as Mac Sai.
+- **It just works.** No Gatekeeper warnings, no right-click-to-open, no Terminal commands. Install it and launch it like any app you trust.
 
-For maintainers with a Developer ID who want to ship notarized builds:
+Put together with the fact that the entire source is open for you to read, this is a chain of trust you do not have to take on faith: the code is public, we sign every release, Apple verifies it, and your Mac re-checks that seal every single time you open the app.
 
-```bash
-export APPLE_DEVELOPER_ID='Developer ID Application: Your Name (TEAMID)'
-xcrun notarytool store-credentials 'MacClean' --apple-id YOU@example.com --team-id TEAMID
-export NOTARY_PROFILE='MacClean'
-bash scripts/build-dmg.sh --notarize
-```
+Maintainers: see [`docs/RELEASING.md`](docs/RELEASING.md) for how releases are built, signed, and notarized.
 
 ## Requirements
 
@@ -254,7 +256,7 @@ Sources/
 ├── MacCleanHelper/             # XPC privileged helper (root operations)
 └── MacCleanMenu/               # Menu bar system monitor
 
-Tests/                          # XCTest suite — 485 tests
+Tests/                          # XCTest suite — 486 tests
 ├── MacCleanTests/              # app-target tests
 ├── MacCleanKitTests/           # framework tests
 └── MacCleanTestSupport/        # fixtures (withTempHome, withFakeApp, …)
@@ -293,7 +295,7 @@ Coverage target: **85%+ overall**, **100% on `SafetyGuard` and `CleaningEngine`*
 
 ## Security
 
-Mac Clean takes security seriously:
+Mac Sai takes security seriously:
 
 - **No network access** — the app never phones home, no telemetry, no analytics
 - **No elevated privileges by default** — XPC helper only activated for maintenance tasks
@@ -333,7 +335,7 @@ This project is licensed under the **BSD 3-Clause License** — see the [LICENSE
 This means you can use, modify, and redistribute this code, but you **must**:
 - Include the original copyright notice
 - Include the license text
-- **Not** use the name "Mac Clean" or contributors' names to endorse derived products without permission
+- **Not** use the name "Mac Sai" or contributors' names to endorse derived products without permission
 
 ## Acknowledgments
 
@@ -346,22 +348,22 @@ Inspired by the open-source Mac utility community:
 ## Star History
 
 <p align="center">
-  <a href="https://www.star-history.com/?type=date&repos=iliyami%2FMacClean">
+  <a href="https://www.star-history.com/?type=date&repos=iliyami%2FMacSai">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=iliyami/MacClean&type=date&theme=dark&legend=top-left" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=iliyami/MacClean&type=date&legend=top-left" />
-      <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=iliyami/MacClean&type=date&legend=top-left" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=iliyami/MacSai&type=date&theme=dark&legend=top-left" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=iliyami/MacSai&type=date&legend=top-left" />
+      <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=iliyami/MacSai&type=date&legend=top-left" />
     </picture>
   </a>
 </p>
 
 <p align="center">
-  <em>If Mac Clean saved you from a subscription, a ⭐ helps others find it.</em>
+  <em>If Mac Sai saved you from a subscription, a ⭐ helps others find it.</em>
 </p>
 
 ---
 
 <p align="center">
-  <strong>Mac Clean is free software built by the community, for the community.</strong><br>
+  <strong>Mac Sai is free software built by the community, for the community.</strong><br>
   If you find it useful, please star the repo and share it with others.
 </p>
