@@ -46,4 +46,21 @@ final class UpdateSchedulerTests: XCTestCase {
         XCTAssertFalse(UpdateScheduler.shouldPrompt(result: .upToDate, skippedVersion: nil))
         XCTAssertFalse(UpdateScheduler.shouldPrompt(result: .failed(message: "x"), skippedVersion: nil))
     }
+
+    // MARK: - updateAction
+
+    func testActionForHomebrewIsBrewCommand() {
+        let a = UpdateScheduler.updateAction(
+            isHomebrew: true,
+            releaseURL: URL(string: "https://example.com")!,
+            brewCommand: "brew upgrade --cask mac-sai")
+        XCTAssertEqual(a, .brewCommand("brew upgrade --cask mac-sai"))
+    }
+
+    func testActionForDMGIsOpenRelease() {
+        let url = URL(string: "https://github.com/iliyami/MacSai/releases/tag/v1.13.0")!
+        let a = UpdateScheduler.updateAction(
+            isHomebrew: false, releaseURL: url, brewCommand: "ignored")
+        XCTAssertEqual(a, .openRelease(url))
+    }
 }

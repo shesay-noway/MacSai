@@ -34,4 +34,14 @@ public enum UpdateScheduler {
         guard case .updateAvailable(let version, _) = result else { return false }
         return version != skippedVersion
     }
+
+    /// Homebrew installs copy the upgrade command (overwriting the cask in place
+    /// would desync brew's receipt); everyone else opens the release page.
+    public static func updateAction(
+        isHomebrew: Bool,
+        releaseURL: URL,
+        brewCommand: String
+    ) -> UpdateAction {
+        isHomebrew ? .brewCommand(brewCommand) : .openRelease(releaseURL)
+    }
 }
