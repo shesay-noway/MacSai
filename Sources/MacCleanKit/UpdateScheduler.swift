@@ -25,4 +25,13 @@ public enum UpdateScheduler {
         guard let lastCheck else { return true }
         return now.timeIntervalSince(lastCheck) >= interval
     }
+
+    /// Show the popup only for a newer version the user hasn't skipped.
+    public static func shouldPrompt(
+        result: UpdateChecker.CheckResult,
+        skippedVersion: String?
+    ) -> Bool {
+        guard case .updateAvailable(let version, _) = result else { return false }
+        return version != skippedVersion
+    }
 }
