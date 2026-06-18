@@ -58,7 +58,7 @@ struct ContentView: View {
                 VStack {
                     Text(MCConstants.appName)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.92))
+                        .foregroundStyle(.primary.opacity(0.92))
                         .padding(.top, 16)
                     Spacer()
                 }
