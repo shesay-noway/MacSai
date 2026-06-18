@@ -164,6 +164,8 @@ public enum MCConstants {
     // full-word "English.lproj", so both English spellings are listed.
     public static let preservedLanguages: Set<String> = [
         "en.lproj", "English.lproj", "Base.lproj", "en_US.lproj", "en_GB.lproj",
+        "zh.lproj", "zh-Hans.lproj", "zh-Hant.lproj", "zh_CN.lproj", "zh_TW.lproj",
+        "Chinese.lproj", "Simplified Chinese.lproj", "Traditional Chinese.lproj",
     ]
 
     // MARK: - Log File Path
@@ -186,5 +188,5 @@ public enum MCConstants {
     // plugin was tried (commit history) but doesn't work under multi-arch
     // `swift build --arch arm64 --arch x86_64` because xcbuild doesn't
     // execute plugins.
-    public static let appVersion = "1.11.6"
+    public static let appVersion = "1.12.1"
 }

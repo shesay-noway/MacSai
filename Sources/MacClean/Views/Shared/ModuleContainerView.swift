@@ -2,6 +2,7 @@ import SwiftUI
 import MacCleanKit
 
 struct ModuleContainerView: View {
+    @AppStorage("removeBackgroundColors") private var removeBackgroundColors = false
     let title: String
     let subtitle: String
     let theme: ModuleTheme
@@ -50,12 +51,12 @@ struct ModuleContainerView: View {
         title: String,
         subtitle: String,
         theme: ModuleTheme,
-        emptyMessage: String = "No items found",
+        emptyMessage: String = L10n.tr("未找到项目", "No items found"),
         results: [ScanResult],
         selectedItems: Binding<Set<URL>>,
         isScanning: Bool,
         scanProgress: Double = 0.5,
-        scanPhase: String = "Scanning...",
+        scanPhase: String = L10n.tr("正在扫描...", "Scanning..."),
         scanComplete: Bool = false,
         completion: CleanSummary? = nil,
         cleaning: CleaningEngine.Progress? = nil,
@@ -142,7 +143,7 @@ struct ModuleContainerView: View {
         if summary.errorCount == 1, let msg = summary.firstErrorMessage {
             Text(msg)
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(.primary.opacity(0.75))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
                 .textSelection(.enabled)
@@ -152,31 +153,31 @@ struct ModuleContainerView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text("\(group.count.formatted())×")
                             .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(.primary.opacity(0.6))
                             .frame(minWidth: 50, alignment: .trailing)
                         Text(group.message)
                             .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.primary.opacity(0.8))
                             .lineLimit(2)
                             .textSelection(.enabled)
                     }
                 }
                 if summary.errorCount > summary.topErrorGroups.reduce(0, { $0 + $1.count }) {
                     let shownTotal = summary.topErrorGroups.reduce(0) { $0 + $1.count }
-                    Text("…and \((summary.errorCount - shownTotal).formatted()) more")
+                    Text(L10n.tr("…以及另外 \((summary.errorCount - shownTotal).formatted()) 项", "…and \((summary.errorCount - shownTotal).formatted()) more"))
                         .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.primary.opacity(0.5))
                         .padding(.top, 2)
                 }
-                Text("Full log: ~/Library/Logs/MacClean/operations.log")
+                Text(L10n.tr("完整日志：~/Library/Logs/MacClean/operations.log", "Full log: ~/Library/Logs/MacClean/operations.log"))
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(.primary.opacity(0.45))
                     .padding(.top, 4)
                     .textSelection(.enabled)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
-            .background(.white.opacity(0.08))
+            .background(.primary.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding(.horizontal, 24)
         }
@@ -188,19 +189,19 @@ struct ModuleContainerView: View {
             ScanProgressRing(
                 progress: progress.fraction,
                 phase: progress.totalItems > 0
-                    ? "Cleaning… \(Int((progress.fraction * 100).rounded()))%"
-                    : "Starting cleanup...",
+                    ? L10n.tr("正在清理… \(Int((progress.fraction * 100).rounded()))%", "Cleaning… \(Int((progress.fraction * 100).rounded()))%")
+                    : L10n.tr("正在开始清理...", "Starting cleanup..."),
                 theme: theme
             )
             if progress.totalItems > 0 {
-                Text("\(progress.processedItems.formatted()) of \(progress.totalItems.formatted()) items")
+                Text(L10n.tr("已处理 \(progress.processedItems.formatted()) / \(progress.totalItems.formatted()) 项", "\(progress.processedItems.formatted()) of \(progress.totalItems.formatted()) items"))
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.primary.opacity(0.65))
             }
             if let onCancelClean {
-                Button("Cancel") { onCancelClean() }
+                Button(L10n.tr("取消", "Cancel")) { onCancelClean() }
                     .buttonStyle(.bordered)
-                    .tint(.white)
+                    .tint(.primary)
                     .controlSize(.large)
             }
             Spacer()
@@ -213,14 +214,14 @@ struct ModuleContainerView: View {
             VStack(spacing: 10) {
                 Text(title)
                     .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 Text(subtitle)
                     .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.primary.opacity(0.65))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 380)
             }
-            ScanButton(title: "Scan", subtitle: title, theme: theme, action: onScan)
+            ScanButton(title: L10n.tr("扫描", "Scan"), subtitle: title, theme: theme, action: onScan)
             Spacer()
         }
     }
@@ -238,16 +239,16 @@ struct ModuleContainerView: View {
             Spacer()
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 52))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.primary.opacity(0.9))
             Text(emptyMessage)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white)
-            Text("Scan complete — nothing to clean up")
+                .foregroundStyle(.primary)
+            Text(L10n.tr("扫描完成——没有需要清理的内容", "Scan complete — nothing to clean up"))
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.55))
-            Button("Done") { onReset() }
+                .foregroundStyle(.primary.opacity(0.55))
+            Button(L10n.tr("完成", "Done")) { onReset() }
                 .buttonStyle(.bordered)
-                .tint(.white)
+                .tint(.primary)
                 .controlSize(.large)
             Spacer()
         }
@@ -261,29 +262,29 @@ struct ModuleContainerView: View {
             Spacer()
             Image(systemName: "lock.fill")
                 .font(.system(size: 52))
-                .foregroundStyle(.white.opacity(0.9))
-            Text("Full Disk Access needed")
+                .foregroundStyle(.primary.opacity(0.9))
+            Text(L10n.tr("需要完全磁盘访问权限", "Full Disk Access needed"))
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white)
-            Text("macOS is blocking access to this location. Grant \(MCConstants.appName) Full Disk Access, then scan again.")
+                .foregroundStyle(.primary)
+            Text(L10n.tr("macOS 正在阻止访问此位置。请为 \(MCConstants.appName) 授予完全磁盘访问权限，然后重新扫描。", "macOS is blocking access to this location. Grant \(MCConstants.appName) Full Disk Access, then scan again."))
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.primary.opacity(0.7))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
             HStack(spacing: 10) {
                 if let onGrantAccess {
-                    Button("Open Settings") { onGrantAccess() }
+                    Button(L10n.tr("打开设置", "Open Settings")) { onGrantAccess() }
                         .buttonStyle(.borderedProminent)
-                        .tint(.white)
+                        .tint(.primary)
                         .controlSize(.large)
                 }
-                Button("Rescan") { onScan() }
+                Button(L10n.tr("重新扫描", "Rescan")) { onScan() }
                     .buttonStyle(.bordered)
-                    .tint(.white)
+                    .tint(.primary)
                     .controlSize(.large)
-                Button("Done") { onReset() }
+                Button(L10n.tr("完成", "Done")) { onReset() }
                     .buttonStyle(.bordered)
-                    .tint(.white)
+                    .tint(.primary)
                     .controlSize(.large)
             }
             Spacer()
@@ -293,10 +294,10 @@ struct ModuleContainerView: View {
     private var resultsView: some View {
         VStack(spacing: 0) {
             HStack {
-                SizeDisplay(size: totalSelected, label: "selected")
-                    .foregroundStyle(.white)
+                SizeDisplay(size: totalSelected, label: L10n.tr("已选择"))
+                    .foregroundStyle(.primary)
                 Spacer()
-                Button("Clean") {
+                Button(L10n.tr("清理", "Clean")) {
                     if confirmEmptyTrash {
                         // Trash Bins: permanent + irreversible — always confirm.
                         showEmptyTrashConfirm = true
@@ -316,30 +317,30 @@ struct ModuleContainerView: View {
                     .disabled(selectedCount == 0)
                     .opacity(selectedCount == 0 ? 0.5 : 1.0)
                     .help(selectedCount == 0
-                          ? "Check at least one item to clean"
+                          ? L10n.tr("请至少勾选一个要清理的项目", "Check at least one item to clean")
                           : confirmEmptyTrash
-                            ? "Permanently delete \(selectedCount) item(s) from the Trash"
-                            : "Move \(selectedCount) item(s) to Trash")
+                            ? L10n.tr("从废纸篓中永久删除 \(selectedCount) 项", "Permanently delete \(selectedCount) item(s) from the Trash")
+                            : L10n.tr("将 \(selectedCount) 项移到废纸篓", "Move \(selectedCount) item(s) to Trash"))
                     .alert(
-                        "Clean \(selectedCount.formatted()) items?",
+                        L10n.tr("清理 \(selectedCount.formatted()) 项？", "Clean \(selectedCount.formatted()) items?"),
                         isPresented: $showLargeSelectionConfirm
                     ) {
-                        Button("Cancel", role: .cancel) { }
-                        Button("Continue", role: .destructive) { onClean() }
+                        Button(L10n.tr("取消", "Cancel"), role: .cancel) { }
+                        Button(L10n.tr("继续", "Continue"), role: .destructive) { onClean() }
                     } message: {
-                        Text("That's about \(formattedSelectedSize) of data and may take several minutes. You can cancel mid-cleanup.")
+                        Text(L10n.tr("约 \(formattedSelectedSize) 数据，可能需要几分钟。清理过程中可以取消。", "That's about \(formattedSelectedSize) of data and may take several minutes. You can cancel mid-cleanup."))
                     }
                     // Trash Bins empties ~/.Trash permanently — there is no
                     // recovery, so this confirmation fires on every Empty
                     // regardless of how many items are selected.
                     .alert(
-                        "Empty the Trash?",
+                        L10n.tr("清空废纸篓？", "Empty the Trash?"),
                         isPresented: $showEmptyTrashConfirm
                     ) {
-                        Button("Cancel", role: .cancel) { }
-                        Button("Empty Trash", role: .destructive) { onClean() }
+                        Button(L10n.tr("取消", "Cancel"), role: .cancel) { }
+                        Button(L10n.tr("清空废纸篓", "Empty Trash"), role: .destructive) { onClean() }
                     } message: {
-                        Text("This permanently deletes \(selectedCount.formatted()) item\(selectedCount == 1 ? "" : "s") (\(formattedSelectedSize)) and cannot be undone.")
+                        Text(L10n.tr("这会永久删除 \(selectedCount.formatted()) 项（\(formattedSelectedSize)），且无法撤销。", "This permanently deletes \(selectedCount.formatted()) item\(selectedCount == 1 ? "" : "s") (\(formattedSelectedSize)) and cannot be undone."))
                     }
             }
             .padding(.horizontal, 24)
@@ -352,7 +353,10 @@ struct ModuleContainerView: View {
                     FileListView(results: results, selectedItems: $selectedItems)
                 }
             }
-            .background(.ultraThinMaterial)
+            .background {
+                if removeBackgroundColors { Color.clear }
+                else { Rectangle().fill(.ultraThinMaterial) }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
@@ -370,22 +374,22 @@ struct ModuleContainerView: View {
             if summary.selectedCount == 0 {
                 Image(systemName: "checklist.unchecked")
                     .font(.system(size: 52))
-                    .foregroundStyle(.white.opacity(0.85))
-                Text("Nothing was selected")
+                    .foregroundStyle(.primary.opacity(0.85))
+                Text(L10n.tr("未选择任何项目", "Nothing was selected"))
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                Text("Re-run the scan, check the items you want to remove, then click Clean.")
+                    .foregroundStyle(.primary)
+                Text(L10n.tr("请重新扫描，勾选要移除的项目，然后点击“清理”。", "Re-run the scan, check the items you want to remove, then click Clean."))
                     .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.primary.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             } else if summary.removedCount == 0 {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 52))
                     .foregroundStyle(.orange.opacity(0.85))
-                Text("\(summary.selectedCount) item\(summary.selectedCount == 1 ? "" : "s") couldn't be cleaned")
+                Text(L10n.tr("\(summary.selectedCount) 项无法清理", "\(summary.selectedCount) item\(summary.selectedCount == 1 ? "" : "s") couldn't be cleaned"))
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 // Show the actual first error message instead of "Check
                 // Console for details" — the user shouldn't need to open
                 // Console.app to find out it was a limit / permission /
@@ -395,14 +399,14 @@ struct ModuleContainerView: View {
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 52))
-                    .foregroundStyle(.white)
-                SizeDisplay(size: summary.freedBytes, label: "cleaned up")
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
+                SizeDisplay(size: summary.freedBytes, label: L10n.tr("已清理", "cleaned up"))
+                    .foregroundStyle(.primary)
                 if summary.removedCount < summary.selectedCount {
-                    Text("\(summary.removedCount) of \(summary.selectedCount) items removed" +
-                         (summary.errorCount > 0 ? " — \(summary.errorCount) error\(summary.errorCount == 1 ? "" : "s")" : ""))
+                    Text(L10n.tr("已移除 \(summary.removedCount) / \(summary.selectedCount) 项", "\(summary.removedCount) of \(summary.selectedCount) items removed") +
+                         (summary.errorCount > 0 ? L10n.tr(" — \(summary.errorCount) 个错误", " — \(summary.errorCount) error\(summary.errorCount == 1 ? "" : "s")") : ""))
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.65))
+                        .foregroundStyle(.primary.opacity(0.65))
                 }
             }
 
@@ -411,16 +415,16 @@ struct ModuleContainerView: View {
                     Button {
                         showActivityLog = true
                     } label: {
-                        Label("View Log", systemImage: "doc.text.magnifyingglass")
+                        Label(L10n.tr("查看日志", "View Log"), systemImage: "doc.text.magnifyingglass")
                     }
                     .buttonStyle(.bordered)
-                    .tint(.white)
+                    .tint(.primary)
                     .controlSize(.large)
-                    .help("Open the activity log to see every error and copy details for a bug report")
+                    .help(L10n.tr("打开活动日志，查看每个错误并复制详情用于反馈问题", "Open the activity log to see every error and copy details for a bug report"))
                 }
-                Button("Done") { onReset() }
+                Button(L10n.tr("完成", "Done")) { onReset() }
                     .buttonStyle(.bordered)
-                    .tint(.white)
+                    .tint(.primary)
                     .controlSize(.large)
             }
             Spacer()

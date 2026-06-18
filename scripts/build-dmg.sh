@@ -57,9 +57,10 @@ echo ""
 
 # Step 1: Build release as a universal (arm64 + x86_64) binary
 BUILD_ARCHS="${BUILD_ARCHS:---arch arm64 --arch x86_64}"
-echo "[1/6] Building release binary (${BUILD_ARCHS})..."
-swift build -c release ${BUILD_ARCHS}
-BUILD_DIR=$(swift build -c release ${BUILD_ARCHS} --show-bin-path)
+echo "[1/6] Building release binaries (${BUILD_ARCHS})..."
+swift build -c release ${BUILD_ARCHS} --product MacClean
+swift build -c release ${BUILD_ARCHS} --product MacCleanMenu
+BUILD_DIR=$(swift build -c release ${BUILD_ARCHS} --product MacClean --show-bin-path)
 echo "  → Binaries: ${BUILD_DIR}"
 
 # Step 2: Create .app bundle

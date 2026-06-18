@@ -2,6 +2,7 @@ import SwiftUI
 import MacCleanKit
 
 struct OptimizationView: View {
+    @AppStorage("removeBackgroundColors") private var removeBackgroundColors = false
     @State private var loginItems: [LoginItemsManager.LoginItem] = []
     @State private var launchAgents: [LaunchAgentsManager.LaunchAgent] = []
     @State private var selectedTab = 0
@@ -14,12 +15,12 @@ struct OptimizationView: View {
         VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Optimization")
+                    Text(L10n.tr("优化", "Optimization"))
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
-                    Text("Manage startup items and background processes")
+                        .foregroundStyle(.primary)
+                    Text(L10n.tr("管理启动项和后台进程", "Manage startup items and background processes"))
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.primary.opacity(0.6))
                 }
                 Spacer()
             }
@@ -31,16 +32,16 @@ struct OptimizationView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .controlSize(.large)
-                        .tint(.white)
-                    Text("Loading items...")
+                        .tint(.primary)
+                    Text(L10n.tr("正在加载项目...", "Loading items..."))
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.primary.opacity(0.6))
                 }
                 Spacer()
             } else {
-                Picker("Section", selection: $selectedTab) {
-                    Text("Login Items").tag(0)
-                    Text("Launch Agents").tag(1)
+                Picker(L10n.tr("分区", "Section"), selection: $selectedTab) {
+                    Text(L10n.tr("登录项", "Login Items")).tag(0)
+                    Text(L10n.tr("启动代理", "Launch Agents")).tag(1)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 24)
@@ -53,7 +54,10 @@ struct OptimizationView: View {
                         launchAgentsList
                     }
                 }
-                .background(.ultraThinMaterial)
+                .background {
+                    if removeBackgroundColors { Color.clear }
+                    else { Rectangle().fill(.ultraThinMaterial) }
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
@@ -106,7 +110,7 @@ struct OptimizationView: View {
                     }
                     Spacer()
                     if agent.isSystem {
-                        Text("System")
+                        Text(L10n.tr("系统", "System"))
                             .font(.system(size: 10))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
