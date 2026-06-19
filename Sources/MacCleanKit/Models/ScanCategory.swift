@@ -19,6 +19,7 @@ public enum ScanCategory: String, CaseIterable, Identifiable, Sendable {
     case unusedDiskImages = "unused_disk_images"
     case incompleteDownloads = "incomplete_downloads"
     case appLeftovers = "app_leftovers"
+    case developerJunk = "developer_junk"
 
     // Mail
     case mailAttachments = "mail_attachments"
@@ -57,6 +58,7 @@ public enum ScanCategory: String, CaseIterable, Identifiable, Sendable {
         case .unusedDiskImages: L10n.tr("未使用的磁盘映像", "Unused Disk Images")
         case .incompleteDownloads: L10n.tr("未完成下载", "Incomplete Downloads")
         case .appLeftovers: L10n.tr("已删除应用的残留文件", "Leftovers from Deleted Apps")
+        case .developerJunk: L10n.tr("开发者垃圾", "Developer Junk")
         case .mailAttachments: L10n.tr("邮件附件", "Mail Attachments")
         case .trashBins: L10n.tr("废纸篓", "Trash Bins")
         case .malware: L10n.tr("恶意软件", "Malware")
@@ -88,6 +90,7 @@ public enum ScanCategory: String, CaseIterable, Identifiable, Sendable {
         case .unusedDiskImages: L10n.tr("曾经挂载但已不再需要的磁盘映像。", "Disk images you mounted once and forgot.")
         case .incompleteDownloads: L10n.tr("未下载完成的文件。", "Partially downloaded files.")
         case .appLeftovers: L10n.tr("已删除应用留下的支持文件。", "Support files from apps you've deleted.")
+        case .developerJunk: L10n.tr("包管理器和 AI 工具的可重建缓存。", "Regenerable caches from package managers and AI tools.")
         case .mailAttachments: L10n.tr("邮件附件的缓存副本。", "Saved copies of Mail attachments.")
         case .trashBins: L10n.tr("当前位于废纸篓中的项目。", "Items currently sitting in the Trash.")
         case .malware: L10n.tr("在磁盘上发现的已知恶意文件。", "Known malicious files found on disk.")
@@ -115,6 +118,7 @@ public enum ScanCategory: String, CaseIterable, Identifiable, Sendable {
         case .deletedUsers: "person.crop.circle.badge.minus"
         case .unusedDiskImages: "opticaldisc"
         case .appLeftovers: "shippingbox.and.arrow.backward"
+        case .developerJunk: "curlybraces"
         case .mailAttachments: "paperclip"
         case .trashBins: "trash"
         case .malware: "shield.lefthalf.filled.trianglebadge.exclamationmark"
@@ -129,7 +133,7 @@ public enum ScanCategory: String, CaseIterable, Identifiable, Sendable {
     public var autoSelect: Bool {
         switch self {
         case .unusedDiskImages, .largeFiles, .oldFiles, .duplicates,
-             .universalBinaries, .appLeftovers:
+             .universalBinaries, .appLeftovers, .developerJunk:
             // appLeftovers: deletes another app's leftover data; detection is
             // conservative but never auto-checked — the user reviews first.
             // universalBinaries: thinning rewrites the app's binaries in
