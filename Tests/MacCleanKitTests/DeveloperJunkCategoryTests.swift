@@ -36,7 +36,10 @@ final class DeveloperJunkCategoryTests: XCTestCase {
         }
     }
 
-    func testTargetsAreNonRecursive() {
-        XCTAssertTrue(DeveloperJunkCategory().targets.allSatisfy { !$0.recursive })
+    func testTargetsAreRecursive() {
+        // Recursive so each cache dir's contents are enumerated and sized;
+        // non-recursive lists subdirs as ~0-byte items (e.g. npm's content-v2),
+        // badly under-reporting reclaimable space.
+        XCTAssertTrue(DeveloperJunkCategory().targets.allSatisfy { $0.recursive })
     }
 }

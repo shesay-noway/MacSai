@@ -24,6 +24,10 @@ public struct DeveloperJunkCategory: JunkCategory {
         ]
         paths += MCConstants.antigravityCaches
         paths += MCConstants.cursorCaches
-        return paths.map { ScanTarget(path: $0, recursive: false) }
+        // Recursive: these caches keep their bulk in subdirectories (npm's
+        // content-v2, Cargo's registry trees, Electron Cache shards). A
+        // non-recursive listing would size those subdirs at ~0 and badly
+        // under-report reclaimable space, the way UserCacheFiles scans deep.
+        return paths.map { ScanTarget(path: $0, recursive: true) }
     }
 }
