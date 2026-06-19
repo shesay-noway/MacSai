@@ -22,6 +22,12 @@ public struct FileListView: View {
     /// Results with each category's items already sorted, computed off-main
     /// in the `.task` below. Seeded unsorted so content shows immediately.
     @State private var displayResults: [ScanResult]
+    /// Memoized flattened rows. Rebuilt only when `rowsKey` changes, NOT on
+    /// every body evaluation: ContentView keeps this view alive and re-renders
+    /// it on every sidebar switch, and re-flattening tens of thousands of rows
+    /// each time (plus the table's O(n) diff) caused a multi-second stall when
+    /// switching away from a finished junk scan and back.
+    @State private var rows: [FileListRow] = []
 
     public init(results: [ScanResult], selectedItems: Binding<Set<URL>>) {
         self.results = results
@@ -34,12 +40,7 @@ public struct FileListView: View {
             sortBar
 
             FileTableView(
-                rows: FileListRows.flatten(
-                    results: displayResults,
-                    isExpanded: { expansion.isExpanded($0) },
-                    selectedItems: selectedItems,
-                    appRunningURLs: appRunningURLs
-                ),
+                rows: rows,
                 onToggleItem: { toggle($0) },
                 onToggleAll: { toggleAll($0) },
                 onToggleExpand: { expansion.toggle($0) }
@@ -47,6 +48,17 @@ public struct FileListView: View {
         }
         .onAppear {
             runningBundleIDs = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
+        }
+        // Rebuild the flattened rows only when something they depend on actually
+        // changes (sort/result counts, selection, expansion, running apps). A
+        // sidebar switch changes none of these, so it does no work here.
+        .onChange(of: rowsKey, initial: true) { _, _ in
+            rows = FileListRows.flatten(
+                results: displayResults,
+                isExpanded: { expansion.isExpanded($0) },
+                selectedItems: selectedItems,
+                appRunningURLs: appRunningURLs
+            )
         }
         // Recompute "app open" URLs only when the results or running apps change,
         // off the main thread — never on a selection toggle.
@@ -75,6 +87,15 @@ public struct FileListView: View {
     private var sortSignature: String {
         sort.rawValue + "#" + results.map { "\($0.category.rawValue):\($0.items.count)" }
             .joined(separator: ",")
+    }
+
+    /// Cheap key that changes whenever the flattened rows would differ, used to
+    /// memoize `rows`. Every selection mutation here changes `selectedItems.count`
+    /// (toggle is +/-1; select-all unions or subtracts), so the count is a
+    /// sufficient selection key without hashing the whole set. All components are
+    /// O(number of categories), never O(number of items).
+    private var rowsKey: String {
+        "\(sortSignature)|sel:\(selectedItems.count)|exp:\(expansion.signature)|run:\(appRunningURLs.count)"
     }
 
     /// Compact sort control above the list. Defaults to largest-first; lets the
