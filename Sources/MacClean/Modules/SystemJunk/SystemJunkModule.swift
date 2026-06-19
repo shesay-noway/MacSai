@@ -32,6 +32,7 @@ public struct SystemJunkModule: ScanModule {
         UnusedDiskImagesCategory(),
         IncompleteDownloadsCategory(),
         AppLeftoversCategory(),
+        DeveloperJunkCategory(),
     ]
 
     public func scan() async -> [ScanResult] {

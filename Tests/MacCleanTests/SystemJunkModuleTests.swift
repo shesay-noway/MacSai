@@ -5,8 +5,8 @@ import MacCleanKit
 
 final class SystemJunkModuleTests: XCTestCase {
 
-    func testRegistersAll17Categories() {
-        XCTAssertEqual(SystemJunkModule.allCategories.count, 17)
+    func testRegistersAll18Categories() {
+        XCTAssertEqual(SystemJunkModule.allCategories.count, 18)
     }
 
     func testAllCategoriesAreUnique() {

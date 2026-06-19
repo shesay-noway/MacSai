@@ -157,6 +157,35 @@ public enum MCConstants {
     public static let pipCache = userCaches.appending(path: "pip")
     public static let cargoRegistry = home.appending(path: ".cargo/registry")
 
+    // MARK: - Developer & AI Tool Caches
+    //
+    // Cache-only. The tools below keep history/memory/sessions/extensions right
+    // next to these caches; those are user data and are deliberately NOT listed.
+
+    // npm's real cache on macOS is ~/.npm/_cacache (not ~/Library/Caches/npm).
+    public static let npmCacache = home.appending(path: ".npm/_cacache")
+    public static let cargoRegistryCache = home.appending(path: ".cargo/registry/cache")
+    public static let cargoRegistrySrc = home.appending(path: ".cargo/registry/src")
+    public static let gradleCaches = home.appending(path: ".gradle/caches")
+    public static let gradleDaemon = home.appending(path: ".gradle/daemon")
+    public static let gradleWrapperDists = home.appending(path: ".gradle/wrapper/dists")
+
+    public static let claudeCache = home.appending(path: ".claude/cache")
+    public static let claudePasteCache = home.appending(path: ".claude/paste-cache")
+    public static let claudeShellSnapshots = home.appending(path: ".claude/shell-snapshots")
+    public static let codexTmp = home.appending(path: ".codex/.tmp")
+    public static let codexCache = home.appending(path: ".codex/cache")
+
+    /// Standard VS Code-family Electron cache dirs under Application Support.
+    /// `User/` and installed `extensions` are excluded (user data / software).
+    public static func electronEditorCaches(_ appSupportName: String) -> [URL] {
+        let base = userAppSupport.appending(path: appSupportName)
+        return ["Cache", "Code Cache", "GPUCache", "CachedData", "CachedProfilesData"]
+            .map { base.appending(path: $0) }
+    }
+    public static var antigravityCaches: [URL] { electronEditorCaches("Antigravity") }
+    public static var cursorCaches: [URL] { electronEditorCaches("Cursor") }
+
     // MARK: - Preserved Languages
 
     // English (in every form) and Base are never offered for deletion. Apps
