@@ -25,4 +25,9 @@ final class MaintenanceTaskPrivilegeTests: XCTestCase {
         // burden the user with a password prompt.
         XCTAssertFalse(MaintenanceTask.verifyStartupDisk.requiresAdmin)
     }
+
+    func testPruneDockerRunsAsUser() {
+        // The docker CLI talks to the user's Docker Desktop daemon; no root.
+        XCTAssertFalse(MaintenanceTask.pruneDocker.requiresAdmin)
+    }
 }

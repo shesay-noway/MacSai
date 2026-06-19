@@ -4,11 +4,10 @@ import Foundation
 
 final class MaintenanceTaskTests: XCTestCase {
 
-    func testNineTasksExist() {
-        // "Repair Disk Permissions" was removed (issue #82): the `diskutil
-        // repairPermissions` verb was deleted by Apple in OS X 10.11, so the
-        // task could only ever fail on supported macOS.
-        XCTAssertEqual(MaintenanceTask.allCases.count, 9)
+    func testTenTasksExist() {
+        // "Repair Disk Permissions" was removed (issue #82). pruneDocker was
+        // added with the Developer Junk feature, bringing the total to 10.
+        XCTAssertEqual(MaintenanceTask.allCases.count, 10)
     }
 
     func testRepairDiskPermissionsRemoved() {
@@ -57,9 +56,11 @@ final class MaintenanceTaskTests: XCTestCase {
                      "Mail reindex is custom logic, not a Process invocation")
     }
 
-    func testAllSystemCommandsArePresentExceptMail() {
+    func testAllSystemCommandsArePresentExceptCustomTasks() {
+        // speedUpMail and pruneDocker are custom-executed (nil systemCommand).
+        let customTasks: Set<MaintenanceTask> = [.speedUpMail, .pruneDocker]
         for task in MaintenanceTask.allCases {
-            if task == .speedUpMail {
+            if customTasks.contains(task) {
                 XCTAssertNil(task.systemCommand)
             } else {
                 XCTAssertNotNil(task.systemCommand, "\(task) should have a system command")
@@ -122,5 +123,24 @@ final class MaintenanceTaskTests: XCTestCase {
                               "\(task) executable path must be absolute (got: \(cmd.executable))")
             }
         }
+    }
+
+    // MARK: - Docker prune
+
+    func testPruneDockerMetadata() {
+        let t = MaintenanceTask.pruneDocker
+        XCTAssertEqual(t.severity, .advanced)
+        XCTAssertNil(t.systemCommand)              // executor special-cases it
+        XCTAssertFalse(t.sideEffects.isEmpty)
+    }
+
+    func testResolveDockerPathReturnsFirstExisting() {
+        let only = "/opt/homebrew/bin/docker"
+        let path = MaintenanceTask.resolveDockerPath { $0 == only }
+        XCTAssertEqual(path, only)
+    }
+
+    func testResolveDockerPathNilWhenNoneExist() {
+        XCTAssertNil(MaintenanceTask.resolveDockerPath { _ in false })
     }
 }

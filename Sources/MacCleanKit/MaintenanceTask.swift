@@ -19,6 +19,7 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
     case reindexSpotlight = "Reindex Spotlight"
     case flushDNSCache = "Flush DNS Cache"
     case thinTimeMachineSnapshots = "Thin Time Machine Snapshots"
+    case pruneDocker = "Reclaim Docker Space"
 
     public var id: String { rawValue }
     public var title: String {
@@ -32,6 +33,7 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
         case .reindexSpotlight: L10n.tr("重建 Spotlight 索引", rawValue)
         case .flushDNSCache: L10n.tr("刷新 DNS 缓存", rawValue)
         case .thinTimeMachineSnapshots: L10n.tr("精简 Time Machine 快照", rawValue)
+        case .pruneDocker: L10n.tr("回收 Docker 空间", rawValue)
         }
     }
 
@@ -46,6 +48,7 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
         case .reindexSpotlight: "magnifyingglass"
         case .flushDNSCache: "network"
         case .thinTimeMachineSnapshots: "clock.arrow.circlepath"
+        case .pruneDocker: "shippingbox"
         }
     }
 
@@ -69,6 +72,8 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
             L10n.tr("清除本地 DNS 缓存并强制重新解析", "Clear the local DNS cache and force fresh lookups")
         case .thinTimeMachineSnapshots:
             L10n.tr("缩减本地 Time Machine 快照以回收磁盘空间", "Reduce local Time Machine snapshot sizes to reclaim disk space")
+        case .pruneDocker:
+            L10n.tr("清理未使用的 Docker 镜像、已停止的容器和构建缓存", "Remove unused Docker images, stopped containers, and build cache")
         }
     }
 
@@ -97,7 +102,8 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
         case .speedUpMail,              // rebuilds Mail envelope index
              .rebuildLaunchServices,    // wipes app/file-type DB — hours of broken double-clicks
              .reindexSpotlight,         // wipes Spotlight index — search dies for hours
-             .thinTimeMachineSnapshots: // deletes local TM snapshots
+             .thinTimeMachineSnapshots, // deletes local TM snapshots
+             .pruneDocker:              // removes unused docker images/cache, irreversible
             .advanced
         }
     }
@@ -126,6 +132,8 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
             L10n.tr("浏览器和其他网络应用会在下次请求时重新解析主机名，影响通常只有毫秒级。", "Browsers and other network apps re-resolve hostnames on next request — milliseconds of impact.")
         case .thinTimeMachineSnapshots:
             L10n.tr("会删除本地 Time Machine 快照以释放空间。远程或备份盘上的快照不受影响，你仍可从 Time Machine 备份恢复。", "Local Time Machine snapshots are deleted to free disk space. Remote/backup-drive snapshots are unaffected; you can still restore from the Time Machine backup itself.")
+        case .pruneDocker:
+            L10n.tr("运行 docker system prune，删除未使用的镜像、已停止的容器、未使用的网络和构建缓存。此操作不可撤销（不会进入废纸篓）。正在运行的容器、使用中的镜像和命名卷不受影响，磁盘映像 Docker.raw 也不会被直接删除。", "Runs docker system prune, removing unused images, stopped containers, unused networks, and build cache. This is irreversible (it does not go to the Trash). Running containers, in-use images, and named volumes are untouched, and the Docker.raw disk image is never deleted directly.")
         }
     }
 
@@ -144,7 +152,7 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
         // `diskutil verifyVolume /` runs read-only without root, so don't
         // burden the user with a password prompt for it (issue #82).
         case .verifyStartupDisk, .speedUpMail, .rebuildLaunchServices,
-             .flushDNSCache:
+             .flushDNSCache, .pruneDocker:
             false
         }
     }
@@ -178,6 +186,22 @@ public enum MaintenanceTask: String, CaseIterable, Identifiable, Sendable {
             ("/usr/bin/dscacheutil", ["-flushcache"])
         case .thinTimeMachineSnapshots:
             ("/usr/bin/tmutil", ["thinlocalsnapshots", "/", "999999999999", "4"])
+        case .pruneDocker:
+            nil
         }
+    }
+
+    /// Where the Docker CLI may live, in priority order. Pure data so the
+    /// resolver is unit-testable.
+    public static let dockerCandidatePaths = [
+        "/usr/local/bin/docker",
+        "/opt/homebrew/bin/docker",
+        "/Applications/Docker.app/Contents/Resources/bin/docker",
+    ]
+
+    /// First candidate path for which `existing` is true, or nil if Docker
+    /// isn't installed. `existing` is injected so tests don't touch the disk.
+    public static func resolveDockerPath(existing: (String) -> Bool) -> String? {
+        dockerCandidatePaths.first(where: existing)
     }
 }
