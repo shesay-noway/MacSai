@@ -28,6 +28,7 @@ public actor MaintenanceExecutor {
 
     public func execute(_ task: MaintenanceTask) async -> TaskResult {
         if case .speedUpMail = task { return await reindexMail() }
+        if case .pruneDocker = task { return await pruneDocker() }
 
         guard let (command, args) = task.systemCommand else {
             return TaskResult(task: task, success: false, output: "",
@@ -137,5 +138,21 @@ public actor MaintenanceExecutor {
             output: L10n.tr("未找到邮件索引——邮件可能使用了不同的版本目录。", "Mail envelope index not found — Mail may use a different version directory."),
             error: nil
         )
+    }
+
+    /// Reclaim Docker space via `docker system prune -f`. Gated on the Docker
+    /// CLI existing (resolved from MaintenanceTask.dockerCandidatePaths); if it
+    /// isn't installed we report that instead of failing obscurely. Runs as the
+    /// user (the CLI talks to Docker Desktop's daemon), so no admin prompt.
+    private func pruneDocker() async -> TaskResult {
+        guard let docker = MaintenanceTask.resolveDockerPath(existing: {
+            FileManager.default.isExecutableFile(atPath: $0)
+        }) else {
+            return TaskResult(
+                task: .pruneDocker, success: false, output: "",
+                error: L10n.tr("未找到 Docker 命令行工具。请确认已安装 Docker Desktop。",
+                               "Docker CLI not found. Make sure Docker Desktop is installed."))
+        }
+        return await runProcess(task: .pruneDocker, command: docker, args: ["system", "prune", "-f"])
     }
 }
