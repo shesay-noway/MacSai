@@ -13,8 +13,12 @@ final class SystemJunkViewModel {
     }
 
     var state: State = .idle
-    var results: [ScanResult] = []
-    var selectedItems: Set<URL> = []
+    var results: [ScanResult] = [] {
+        didSet { rebuildSizeIndex() }
+    }
+    var selectedItems: Set<URL> = [] {
+        didSet { recomputeSelectedSize() }
+    }
     var filesFound: Int = 0
     var scanPhase: String = L10n.tr("正在扫描...", "Scanning...")
     /// Held so the View's Cancel button can stop an in-flight cleanup.
@@ -22,11 +26,33 @@ final class SystemJunkViewModel {
 
     private let module = SystemJunkModule()
 
-    var totalSelectedSize: UInt64 {
-        let allItems = results.flatMap(\.items)
-        return allItems
-            .filter { selectedItems.contains($0.url) }
-            .reduce(0) { $0 + $1.size }
+    /// Cached total bytes of the current selection. The results view reads this
+    /// on every body pass, and SwiftUI re-evaluates that body during the layout
+    /// pass on every sidebar switch, so it MUST be O(1) to read. It used to be
+    /// an O(n) computed property that flat-mapped every item into a fresh array
+    /// each call; once a scan listed 100k+ items that froze the main thread for
+    /// seconds on each switch (confirmed by a sample: ~46% of main-thread time
+    /// was in this getter under NSHostingView.layout). Recomputed only when
+    /// `results` or `selectedItems` actually change.
+    private(set) var totalSelectedSize: UInt64 = 0
+
+    /// url -> size index, rebuilt when `results` change, so recomputing the
+    /// selected total is O(selected) rather than O(all items).
+    private var sizeByURL: [URL: UInt64] = [:]
+
+    private func rebuildSizeIndex() {
+        var map = [URL: UInt64](minimumCapacity: results.reduce(0) { $0 + $1.items.count })
+        for result in results {
+            for item in result.items { map[item.url] = item.size }
+        }
+        sizeByURL = map
+        recomputeSelectedSize()
+    }
+
+    private func recomputeSelectedSize() {
+        var total: UInt64 = 0
+        for url in selectedItems { total += sizeByURL[url] ?? 0 }
+        totalSelectedSize = total
     }
 
     var selectedCount: Int {
@@ -76,11 +102,14 @@ final class SystemJunkViewModel {
             results = scanResults
             filesFound = scanResults.reduce(0) { $0 + $1.fileCount }
 
+            // Build the auto-selection locally and assign once, so the
+            // selectedItems observer (and its size recompute) fires a single
+            // time instead of once per inserted URL.
+            var selection = selectedItems
             for result in scanResults where result.autoSelect {
-                for item in result.items {
-                    selectedItems.insert(item.url)
-                }
+                for item in result.items { selection.insert(item.url) }
             }
+            selectedItems = selection
 
             let elapsed = Date().timeIntervalSince(scanStart)
             if elapsed < 2.0 {
